@@ -9,14 +9,7 @@ internal class Program
     [STAThread]
     public static void Main()
     {
-        var htmlContent = string.Empty;
         var assembly = Assembly.GetExecutingAssembly();
-        var indexResource = assembly.GetManifestResourceNames().FirstOrDefault(x => x.EndsWith("index.html"));
-        if (indexResource != null) {
-            using var stream = assembly.GetManifestResourceStream(indexResource);
-            using var reader = new StreamReader(stream!);
-            htmlContent = reader.ReadToEnd();
-        }
 
         var window = new Window {
             Title = "Test Window",
@@ -31,8 +24,8 @@ internal class Program
             //MaximizeEnabled = false,
 
             WebView = {
-                //StartUrl = "https://google.com",
-                StartContent = htmlContent,
+                //StartSource = "https://google.com",
+                StartSource = WebViewSource.FromResource("index.html"),
                 ContextMenuEnabled = true,
                 DevToolsEnabled = true
             }
@@ -113,10 +106,10 @@ internal class Program
 
     private static string Test(string arg1, string arg2)
     {
-        Console.WriteLine($"[METHOD] [WebView] Test: {arg1}, {arg2}");
+        Console.WriteLine(@$"[METHOD] [WebView] Test: {arg1}, {arg2}");
         return "Test result";
     }
 
-    private static void LogWindowEvent(string message) => Console.WriteLine("[EVENT] [Window] {0}", message);
-    private static void LogWebViewEvent(string message) => Console.WriteLine("[EVENT] [WebView] {0}", message);
+    private static void LogWindowEvent(string message) => Console.WriteLine(@"[EVENT] [Window] {0}", message);
+    private static void LogWebViewEvent(string message) => Console.WriteLine(@"[EVENT] [WebView] {0}", message);
 }
