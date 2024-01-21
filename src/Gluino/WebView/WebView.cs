@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using Gluino.Interop;
+﻿using Gluino.Interop;
 
 namespace Gluino;
 
@@ -8,10 +7,6 @@ namespace Gluino;
 /// </summary>
 public partial class WebView
 {
-    [GeneratedRegex("^https?://", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
-    private static partial Regex CreateHttpRegex();
-    private static readonly Regex HttpRegex = CreateHttpRegex();
-
     private readonly Window _window;
     private readonly WebViewBinder _binder;
 
@@ -57,21 +52,17 @@ public partial class WebView
         _window = window;
         _binder = new WebViewBinder(this);
     }
-
+    
     /// <summary>
-    /// Gets or sets the URL to load when the WebView is created.
+    /// Sets the source URL or HTML content to load when the WebView is created.
     /// </summary>
-    public string StartUrl {
-        get => NativeOptions.StartUrl;
-        set => NativeOptions.StartUrl = value;
-    }
-
-    /// <summary>
-    /// Gets or sets the HTML content to load when the WebView is created.
-    /// </summary>
-    public string StartContent {
-        get => NativeOptions.StartContent;
-        set => NativeOptions.StartContent = value;
+    public WebViewSource StartSource {
+        set {
+            if (value.IsUrl)
+                NativeOptions.StartUrl = value.Value;
+            else
+                NativeOptions.StartContent = value.Value;
+        }
     }
 
     /// <summary>
@@ -118,51 +109,22 @@ public partial class WebView
             NativeOptions.GrantPermissions = value;
         }
     }
-
+    
     /// <summary>
-    /// Navigates to the specified URL or file.
+    /// Navigate to the specified <see cref="WebViewSource"/>.
     /// </summary>
-    /// <param name="url">The URL or file to navigate to.</param>
-    public void Navigate(string url)
-    {
-        if (HttpRegex.IsMatch(url)) {
-            Navigate(new Uri(url));
-            return;
-        }
-
-        var fullPath = Path.GetFullPath(url);
-        if (!File.Exists(fullPath)) 
-            throw new FileNotFoundException("The specified URL or file could not be found.", url);
-
-        Navigate(new Uri(fullPath, UriKind.Absolute));
-    }
-
-    /// <summary>
-    /// Navigates to the specified URL.
-    /// </summary>
-    /// <param name="uri"> The URL to navigate to.</param>
-    public void Navigate(Uri uri)
+    /// <param name="source">The <see cref="WebViewSource"/> to navigate to.</param>
+    public void Navigate(WebViewSource source)
     {
         if (InstancePtr == nint.Zero) {
-            NativeOptions.StartUrl = uri.ToString();
+            StartSource = source;
             return;
         }
-
-        Invoke(() => NativeWebView.Navigate(InstancePtr, uri.ToString()));
-    }
-
-    /// <summary>
-    /// Navigates to the specified HTML content.
-    /// </summary>
-    /// <param name="content">The HTML content to navigate to.</param>
-    public void NativateToString(string content)
-    {
-        if (InstancePtr == nint.Zero) {
-            NativeOptions.StartContent = content;
-            return;
-        }
-
-        Invoke(() => NativeWebView.NativateToString(InstancePtr, content));
+        
+        if (source.IsUrl)
+            Invoke(() => NativeWebView.Navigate(InstancePtr, source.Value));
+        else
+            Invoke(() => NativeWebView.NativateToString(InstancePtr, source.Value));
     }
 
     /// <summary>
