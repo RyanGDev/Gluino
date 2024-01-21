@@ -105,6 +105,8 @@ public partial class Window
         };
 
         WebView = new(this);
+
+        InitializeBindings();
     }
 
     /// <summary>
@@ -411,6 +413,14 @@ public partial class Window
     }
 
     internal T SafeInvoke<T>(Func<T> func) => InstancePtr == nint.Zero ? default : Invoke(func);
+
+    /// <summary>
+    /// Initialize method binds that are created using <see cref="BindingAttribute"/>.
+    /// </summary>
+    /// <remarks>
+    /// This method is overridden by a source generator. Manually overriding it is not recommended, and may cause your bindings to not work.
+    /// </remarks>
+    protected virtual void InitializeBindings() { }
 
     /// <summary>
     /// Occurs when the window is being created.

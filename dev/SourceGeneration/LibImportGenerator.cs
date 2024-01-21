@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Gluino.SourceGeneration;
+namespace SourceGeneration;
 
 [Generator]
 public class LibImportGenerator : ISourceGenerator

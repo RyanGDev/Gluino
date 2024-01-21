@@ -11,22 +11,24 @@ internal class WebViewBinder
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true
     };
-
     private readonly WebView _webView;
     private readonly ConcurrentDictionary<string, Delegate> _bindings = new();
     private readonly List<string> _initBindings = [];
+    private readonly string _windowName;
 
-    public WebViewBinder(WebView webView)
+    public WebViewBinder(Window window, WebView webView)
     {
         _webView = webView;
         _webView.MessageReceived += OnWebViewMessageReceived;
         _webView.Created += OnWebViewCreated;
+
+        _windowName = ToCamelCase(window.GetType().Name);
     }
 
     private void OnWebViewCreated(object sender, EventArgs e)
     {
         _webView.InjectScriptOnDocumentCreated(
-            """
+            $$"""
             (function () {
               window.gluino.uuid = function () {
                 if (crypto.randomUUID) return crypto.randomUUID();
@@ -61,7 +63,9 @@ internal class WebViewBinder
                 };
                 __bindCallbacks[fnData.id] = cb;
                 window.gluino.sendMessage(__bindPrefix + JSON.stringify(fnData));
-              }
+              };
+              
+              window.gluino.bindings = { {{_windowName}}: {} };
             })();
             """);
 
@@ -69,7 +73,7 @@ internal class WebViewBinder
             _webView.InjectScriptOnDocumentCreated(jsFunc);
     }
 
-    public void Bind(string name, Delegate fn)
+    public void Bind(string name, Delegate fn, bool global)
     {
         var methodInfo = fn.Method;
         var parameters = methodInfo.GetParameters();
@@ -77,7 +81,7 @@ internal class WebViewBinder
         var jsArgs = string.Join(", ", parameters.Select(p => p.Name));
         var jsFunc =
             $$"""
-            window.gluino.{{name}} = function({{jsArgs}}) {
+            window.gluino.bindings.{{(global ? "" : $"{_windowName}.")}}{{name}} = function({{jsArgs}}) {
               return new Promise((resolve) => {
                 window.gluino.invoke('{{name}}', [{{jsArgs}}], resolve);
               });
@@ -131,7 +135,18 @@ internal class WebViewBinder
             Ret = result
         });
     }
-    
+
+    private static string ToCamelCase(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return value;
+
+        if (value.Length == 1)
+            return value.ToLowerInvariant();
+
+        return char.ToLowerInvariant(value[0]) + value[1..];
+    }
+
     protected class BindData
     {
         public string Id { get; set; }

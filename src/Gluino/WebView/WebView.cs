@@ -50,7 +50,7 @@ public partial class WebView
         };
 
         _window = window;
-        _binder = new WebViewBinder(this);
+        _binder = new WebViewBinder(window, this);
     }
     
     /// <summary>
@@ -144,28 +144,46 @@ public partial class WebView
     /// </summary>
     /// <param name="script">The JavaScript code to inject.</param>
     public void InjectScriptOnDocumentCreated(string script) => SafeInvoke(() => NativeWebView.InjectScript(InstancePtr, script, true));
-    
+
     /// <summary>
     /// Bind a C# method to JavaScript.
     /// </summary>
     /// <param name="name">The name of the function that will be created in JavaScript.</param>
     /// <param name="fn">The method to bind.</param>
+    /// <param name="global">Whether the function should be created in a global scope.</param>
     /// <remarks>
     /// Example binding:
+    /// <example>
     /// <code>
     /// // C#
-    /// webView.Bind("test", (string arg1, string arg2) => {
-    ///     Console.WriteLine($"arg1: {arg1}, arg2: {arg2}"); // arg1: Hello, arg2: World!
-    ///     return "Hello from C#!";
-    /// });
+    /// public class MainWindow : Window
+    /// {
+    ///     public MainWindow()
+    ///     {
+    ///         webView.Bind("test", (string arg1, string arg2) => {
+    ///             Console.WriteLine($"arg1: {arg1}, arg2: {arg2}"); // arg1: Hello, arg2: World!
+    ///             return "Hello from C#!";
+    ///         });
+    ///     }
+    /// }
     /// </code>
     /// <code>
     /// // JavaScript
-    /// const result = await window.gluino.test("Hello", "World!");
+    /// const result = await window.gluino.bindings.mainWindow.test("Hello", "World!");
     /// cosnole.log(result); // Hello from C#!
     /// </code>
+    /// </example>
+    /// <br/>
+    /// If the <paramref name="global"/> parameter is set to <see langword="false"/>, the binding will be put directly in <c>window.gluino.bindings</c>.<br/>
+    /// Example:
+    /// <example>
+    /// <code>
+    /// // JavaScript
+    /// const result = await window.gluino.bindings.test("Hello", "World!");
+    /// </code>
+    /// </example>
     /// </remarks>
-    public void Bind(string name, Delegate fn) => _binder.Bind(name, fn);
+    public void Bind(string name, Delegate fn, bool global = false) => _binder.Bind(name, fn, global);
 
     private void Invoke(Action action) => _window.Invoke(action);
     private void SafeInvoke(Action action) => _window.SafeInvoke(action);
