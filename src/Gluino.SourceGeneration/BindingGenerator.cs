@@ -35,37 +35,106 @@ public class BindingGenerator : ISourceGenerator
     private static void GenerateWindowPartial(GeneratorExecutionContext context, BindingWindow[] bindingWindows)
     {
         foreach (var bwnd in bindingWindows) {
-            var usingsBuilder = new StringBuilder();
-            var builder = new StringBuilder();
+            var usingsList = new List<string>{ "Gluino", "System.Text.Json" };
             var ns = bwnd.Symbol.ContainingNamespace.ToDisplayString();
+            var injectBuilder = new StringBuilder();
+            var invokeBuilder = new StringBuilder();
 
-            builder
-                .AppendLine($"namespace {ns}")
-                .AppendLine("{")
-                .AppendLine($"    {bwnd.Symbol.DeclaredAccessibility.ToDisplayString()} partial class {bwnd.Name}")
-                .AppendLine("    {")
-                .AppendLine("        protected override void InitializeBindings()")
-                .AppendLine("        {");
-
-            foreach (var method in bwnd.Methods) {
-                foreach (var p in method.Parameters) {
+            foreach (var bm in bwnd.Methods) {
+                foreach (var p in bm.Parameters) {
                     var pns = p.Type.ContainingNamespace.ToDisplayString();
-                    if (pns != ns) {
-                        usingsBuilder.AppendLine($"using {pns};");
-                    }
+                    if (pns == ns) continue;
+
+                    if (usingsList.Contains(pns)) continue;
+                    usingsList.Add(pns);
                 }
 
-                builder.AppendLine($"            WebView.Bind(\"{method.CustomName}\", {method.Name}, {method.Global.ToString().ToLower()});");
+                var paramNames = $"new string[] {{ {string.Join(", ", bm.Parameters.Select(p => $"\"{p.Name}\""))} }}";
+                injectBuilder.AppendLine($"{S(12)}InjectBinding(\"{bm.CustomName}\", {paramNames}, {bm.Global.ToString().ToLower()});");
+
+                var isTask = bm.ReturnType.IsTask(out _);
+                var argIndex = 0;
+                var args = string.Join(", ", bm.Parameters.Select(p => $"data.Arg<{p.Type.ToDisplayString()}>({argIndex++})"));
+                invokeBuilder.AppendLine($"{S(16)}\"{bm.CustomName}\" => {(isTask ? "await" : "")} {bm.Name}({args}),");
             }
 
-            builder
-                .AppendLine("        }")
-                .AppendLine("    }")
-                .AppendLine("}");
+            var source =
+                $$$""""
+                {{{string.Join(Environment.NewLine, usingsList.Select(u => $"using {u};"))}}}
+                
+                namespace {{{ns}}}
+                {
+                    {{{$"{bwnd.Symbol.DeclaredAccessibility.ToDisplayString()} partial class {bwnd.Name}"}}}
+                    {
+                        private const string BindingPrefix = "bind:";
+                        private const string BindingWindowName = "{{{bwnd.Name.ToCamelCase()}}}";
+                        
+                        private static readonly JsonSerializerOptions BindingJsonOptions = new JsonSerializerOptions() {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                            PropertyNameCaseInsensitive = true
+                        };
+                        
+                        private void InjectBinding(string name, string[] paramNames, bool global)
+                        {
+                            var jsArgs = string.Join(", ", paramNames);
+                            var js =
+                                $$"""
+                                window.gluino.bindings.{{(global ? "" : $"{BindingWindowName}.")}}{{name}} = function({{jsArgs}}) {
+                                  return new Promise((resolve) => {
+                                    window.gluino.invoke('{{name}}', [{{jsArgs}}], resolve);
+                                  });
+                                }
+                                """;
+                        
+                            WebView.InjectScriptOnDocumentCreated(js);
+                        }
+                        
+                        protected override void InitializeBindings()
+                        {
+                            {{{injectBuilder.ToString().Trim()}}}
+                            
+                            WebView.MessageReceived += OnWebViewMessageReceived;
+                        }
+                        
+                        private async void OnWebViewMessageReceived(object sender, string e)
+                        {
+                            if (!e.StartsWith(BindingPrefix)) return;
+                        
+                            var json = e[BindingPrefix.Length..];
+                            var data = JsonSerializer.Deserialize<BindData>(json, BindingJsonOptions);
+                        
+                            //generate case expressions
+                            var result = data.Name switch {
+                                {{{invokeBuilder.ToString().Trim()}}}
+                                _ => null
+                            };
+                            
+                            var resultJson = JsonSerializer.Serialize(new {
+                                data.Id,
+                                Ret = result
+                            }, BindingJsonOptions);
+                            WebView.SendMessage(BindingPrefix + resultJson);
+                        }
+                        
+                        private class BindData
+                        {
+                            public string Id { get; set; }
+                            public string Name { get; set; }
+                            public List<JsonElement> Args { get; set; }
+                        
+                            public T Arg<T>(int index)
+                            {
+                                if (Args.Count == 0) return default;
+                                if (index >= Args.Count) return default;
+                        
+                                return Args[index].Deserialize<T>(BindingJsonOptions);
+                            }
+                        }
+                    }
+                }
+                """";
 
-            var contents = $"{(usingsBuilder.Length > 0 ? usingsBuilder.AppendLine() : "")}{builder}";
-
-            context.AddSource($"{bwnd.Name}.g", contents);
+            context.AddSource($"{bwnd.Name}.g", source);
         }
     }
 
@@ -127,6 +196,8 @@ public class BindingGenerator : ISourceGenerator
               }
               """);
     }
+
+    private static string S(int amount) => new(' ', amount);
 
     public class BindingWindow
     {
@@ -200,13 +271,13 @@ public class BindingGenerator : ISourceGenerator
         {
             var list = new List<INamedTypeSymbol>();
 
-            if (!ReturnType.IsPrimitive())
+            if (!ReturnType.IsPrimitive() && !ReturnType.IsKnownType())
                 list.Add(ReturnType as INamedTypeSymbol);
 
             var paramTypes = Parameters
                 .Select(p => p.Type)
                 .OfType<INamedTypeSymbol>()
-                .Where(t => !t.IsPrimitive());
+                .Where(t => !t.IsPrimitive() && !t.IsKnownType());
             list.AddRange(paramTypes);
 
             return [.. list];
@@ -222,7 +293,7 @@ public class BindingGenerator : ISourceGenerator
             if (syntaxNode is not ClassDeclarationSyntax cds)
                 return;
             
-            if (cds.Inherits("Window")) {
+            if (cds.Inherits("Window") && cds.Modifiers.Any(SyntaxKind.PartialKeyword)) {
                 WindowClasses.Add(cds);
             }
         }
@@ -233,14 +304,16 @@ public static class Extensions
 {
     public static string ToTypeScript(this ITypeSymbol typeSymbol)
     {
-        if (!typeSymbol.IsPrimitive() && typeSymbol is INamedTypeSymbol namedTypeSymbol) {
-            if (namedTypeSymbol.IsGenericType &&
-                namedTypeSymbol.AllInterfaces.Any(i => i.ToDisplayString() == "System.Collections.Generic.IEnumerable`1") &&
-                namedTypeSymbol.TypeArguments.Length == 1) {
-                return $"{namedTypeSymbol.TypeArguments[0].ToTypeScript()}[]";
+        if (!typeSymbol.IsPrimitive()) {
+            if (typeSymbol.IsIEnumerable(out var nts)) {
+                return $"{nts.TypeArguments[0].ToTypeScript()}[]";
             }
 
-            return namedTypeSymbol.Name;
+            if (typeSymbol.IsTask(out nts)) {
+                return nts.TypeArguments[0].ToTypeScript();
+            }
+
+            return typeSymbol.Name;
         }
 
         if (typeSymbol.TypeKind == TypeKind.Array && typeSymbol is IArrayTypeSymbol arrayTypeSymbol) {
@@ -273,6 +346,36 @@ public static class Extensions
         return "any";
     }
 
+    public static bool IsGenericNamedTypeSymbol(this ITypeSymbol typeSymbol, int typeArguments,
+        out INamedTypeSymbol namedTypeSymbol)
+    {
+        if (typeSymbol is not INamedTypeSymbol { IsGenericType: true } nts || nts.TypeArguments.Length != typeArguments) {
+            namedTypeSymbol = default;
+            return false;
+        }
+
+        namedTypeSymbol = nts;
+        return true;
+    }
+
+    public static bool IsIEnumerable(this ITypeSymbol typeSymbol, out INamedTypeSymbol namedTypeSymbol)
+    {
+        if (!typeSymbol.IsGenericNamedTypeSymbol(1, out namedTypeSymbol))
+            return false;
+
+        return namedTypeSymbol.AllInterfaces
+            .Any(i =>
+                i.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>");
+    }
+
+    public static bool IsTask(this ITypeSymbol typeSymbol, out INamedTypeSymbol namedTypeSymbol)
+    {
+        if (!typeSymbol.IsGenericNamedTypeSymbol(1, out namedTypeSymbol))
+            return false;
+
+        return namedTypeSymbol.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.Task<TResult>";
+    }
+    
     public static string ToTypeScriptInterface(this ITypeSymbol typeSymbol)
     {
         if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
@@ -312,6 +415,11 @@ public static class Extensions
         return type != null && type.SpecialType != SpecialType.None;
     }
 
+    public static bool IsKnownType(this ITypeSymbol type)
+    {
+        return type.IsIEnumerable(out _) || type.IsTask(out _);
+    }
+    
     public static AttributeData GetAttribute(this ISymbol symbol, string name)
     {
         return symbol
@@ -358,12 +466,16 @@ public static class Extensions
 
     public static string GetCallingPath(this GeneratorExecutionContext context)
     {
-        return context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.projectdir", out var result) ? result : null;
+        return context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.projectdir", out var result)
+            ? result
+            : null;
     }
 
     public static string GetCallingVersion(this GeneratorExecutionContext context)
     {
-        return !context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.PackageVersion", out var packageVersion) ? null : packageVersion;
+        return !context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.PackageVersion", out var packageVersion)
+            ? null
+            : packageVersion;
     }
 
     public static string ToDisplayString(this Accessibility accessibility)

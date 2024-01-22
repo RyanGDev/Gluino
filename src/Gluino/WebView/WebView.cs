@@ -8,7 +8,7 @@ namespace Gluino;
 public partial class WebView
 {
     private readonly Window _window;
-    private readonly WebViewBinder _binder;
+    private readonly Action _fnInitBindings;
 
     internal nint InstancePtr;
     internal NativeWebViewOptions NativeOptions;
@@ -35,7 +35,7 @@ public partial class WebView
     /// </summary>
     public event EventHandler<WebResourceRequestedEventArgs> ResourceRequested;
 
-    internal WebView(Window window)
+    internal WebView(Window window, Action fnInitBindings)
     {
         NativeOptions = new() {
             ContextMenuEnabled = true
@@ -50,7 +50,7 @@ public partial class WebView
         };
 
         _window = window;
-        _binder = new WebViewBinder(window, this);
+        _fnInitBindings = fnInitBindings;
     }
     
     /// <summary>
@@ -144,52 +144,60 @@ public partial class WebView
     /// </summary>
     /// <param name="script">The JavaScript code to inject.</param>
     public void InjectScriptOnDocumentCreated(string script) => SafeInvoke(() => NativeWebView.InjectScript(InstancePtr, script, true));
-
-    /// <summary>
-    /// Bind a C# method to JavaScript.
-    /// </summary>
-    /// <param name="name">The name of the function that will be created in JavaScript.</param>
-    /// <param name="fn">The method to bind.</param>
-    /// <param name="global">Whether the function should be created in a global scope.</param>
-    /// <remarks>
-    /// Example binding:
-    /// <example>
-    /// <code>
-    /// // C#
-    /// public class MainWindow : Window
-    /// {
-    ///     public MainWindow()
-    ///     {
-    ///         webView.Bind("test", (string arg1, string arg2) => {
-    ///             Console.WriteLine($"arg1: {arg1}, arg2: {arg2}"); // arg1: Hello, arg2: World!
-    ///             return "Hello from C#!";
-    ///         });
-    ///     }
-    /// }
-    /// </code>
-    /// <code>
-    /// // JavaScript
-    /// const result = await window.gluino.bindings.mainWindow.test("Hello", "World!");
-    /// cosnole.log(result); // Hello from C#!
-    /// </code>
-    /// </example>
-    /// <br/>
-    /// If the <paramref name="global"/> parameter is set to <see langword="false"/>, the binding will be put directly in <c>window.gluino.bindings</c>.<br/>
-    /// Example:
-    /// <example>
-    /// <code>
-    /// // JavaScript
-    /// const result = await window.gluino.bindings.test("Hello", "World!");
-    /// </code>
-    /// </example>
-    /// </remarks>
-    public void Bind(string name, Delegate fn, bool global = false) => _binder.Bind(name, fn, global);
-
+    
     private void Invoke(Action action) => _window.Invoke(action);
     private void SafeInvoke(Action action) => _window.SafeInvoke(action);
     private T SafeInvoke<T>(Func<T> func) => _window.SafeInvoke(func);
     
-    private void InvokeCreated() => Created?.Invoke(this, EventArgs.Empty);
+    private void InvokeCreated()
+    {
+        InjectScriptOnDocumentCreated(
+            $$"""
+            (function () {
+              window.gluino.uuid = function () {
+                if (crypto.randomUUID) return crypto.randomUUID();
+            
+                const data = new Uint8Array(16);
+                crypto.getRandomValues(data);
+                data[6] = (data[6] & 0x0f) | 0x40;
+                data[8] = (data[8] & 0x3f) | 0x80;
+                const hex = Array.from(data, (byte) => byte.toString(16).padStart(2, '0')).join('');
+                return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-4${hex.substring(13, 16)}-${((data[15] & 0x3f) | 0x80)
+                  .toString(16)
+                  .padStart(2, '0')}${hex.substring(17, 20)}-${hex.substring(20, 32)}`;
+              };
+            
+              const __bindPrefix = 'bind:';
+              const __bindCallbacks = {};
+            
+              window.gluino.addListener(function (e) {
+                if (!e.startsWith(__bindPrefix)) return;
+                const cbData = JSON.parse(e.slice(__bindPrefix.length));
+                if (__bindCallbacks[cbData.id]) {
+                  __bindCallbacks[cbData.id](cbData.ret);
+                  delete __bindCallbacks[cbData.id];
+                }
+              });
+            
+              window.gluino.invoke = function(name, args, cb) {
+                const fnData = {
+                  id: window.gluino.uuid(),
+                  name,
+                  args,
+                };
+                __bindCallbacks[fnData.id] = cb;
+                window.gluino.sendMessage(__bindPrefix + JSON.stringify(fnData));
+              };
+              
+              window.gluino.bindings = { {{ToCamelCase(_window.GetType().Name)}}: {} };
+            })();
+            """);
+
+        _fnInitBindings();
+
+        Created?.Invoke(this, EventArgs.Empty);
+    }
+
     private void InvokeNavigationStart(string url) => NavigationStart?.Invoke(this, new (url));
     private void InvokeNavigationEnd() => NavigationEnd?.Invoke(this, EventArgs.Empty);
     private void InvokeMessageReceived(string message) => MessageReceived?.Invoke(this, message);
@@ -202,5 +210,16 @@ public partial class WebView
         ResourceRequested?.Invoke(this, new(req, res));
 
         response = res.Native;
+    }
+
+    private static string ToCamelCase(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return value;
+
+        if (value.Length == 1)
+            return value.ToLowerInvariant();
+
+        return char.ToLowerInvariant(value[0]) + value[1..];
     }
 }

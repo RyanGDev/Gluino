@@ -13,55 +13,67 @@ public partial class Window
     internal nint InstancePtr;
     internal NativeWindowOptions NativeOptions;
     internal NativeWindowEvents NativeEvents;
-    
+
     /// <summary>
     /// Occurs when the window is being created.
     /// </summary>
     public event EventHandler Creating;
+
     /// <summary>
     /// Occurs when the window has been created.
     /// </summary>
     public event EventHandler Created;
+
     /// <summary>
     /// Occurs when the window is shown.
     /// </summary>
     public event EventHandler Shown;
+
     /// <summary>
     /// Occurs when the window is hidden.
     /// </summary>
     public event EventHandler Hidden;
+
     /// <summary>
     /// Occurs when the window is resized.
     /// </summary>
     public event EventHandler<Size> Resize;
+
     /// <summary>
     /// Occurs when the window resize operation starts.
     /// </summary>
     public event EventHandler<Size> ResizeStart;
+
     /// <summary>
     /// Occurs when the window resize operation ends.
     /// </summary>
     public event EventHandler<Size> ResizeEnd;
+
     /// <summary>
     /// Occurs when the window location is changed.
     /// </summary>
     public event EventHandler<Point> LocationChanged;
+
     /// <summary>
     /// Occurs when the window state is changed.
     /// </summary>
-    public event EventHandler<WindowStateChangedEventArgs> WindowStateChanged; 
+    public event EventHandler<WindowStateChangedEventArgs> WindowStateChanged;
+
     /// <summary>
     /// Occurs when the window gains focus.
     /// </summary>
     public event EventHandler FocusIn;
+
     /// <summary>
     /// Occurs when the window loses focus.
     /// </summary>
     public event EventHandler FocusOut;
+
     /// <summary>
     /// Occurs when the window is closing.
     /// </summary>
     public event EventHandler<WindowClosingEventArgs> Closing;
+
     /// <summary>
     /// Occurs when the window is closed.
     /// </summary>
@@ -81,7 +93,7 @@ public partial class Window
                 Height = int.MaxValue
             },
             Size = new() {
-                Width = 800, 
+                Width = 800,
                 Height = 600
             },
             MinimizeEnabled = true,
@@ -104,9 +116,7 @@ public partial class Window
             OnClosed = InvokeClosed
         };
 
-        WebView = new(this);
-
-        InitializeBindings();
+        WebView = new(this, InitializeBindings);
     }
 
     /// <summary>
@@ -205,8 +215,7 @@ public partial class Window
     /// <remarks>
     /// Default: <see cref="WindowStartupLocation.Default"/>
     /// </remarks>
-    public WindowStartupLocation StartupLocation
-    {
+    public WindowStartupLocation StartupLocation {
         get => NativeOptions.StartupLocation;
         set => NativeOptions.StartupLocation = value;
     }
@@ -350,9 +359,9 @@ public partial class Window
         if (InstancePtr == nint.Zero) {
             InvokeCreating();
 
-            NativeApp.SpawnWindow(App.NativeInstance, 
-                ref NativeOptions, ref NativeEvents, 
-                ref WebView.NativeOptions, ref WebView.NativeEvents, 
+            NativeApp.SpawnWindow(App.NativeInstance,
+                ref NativeOptions, ref NativeEvents,
+                ref WebView.NativeOptions, ref WebView.NativeEvents,
                 out InstancePtr, out WebView.InstancePtr);
             App.ActiveWindows.Add(this);
             InvokeCreated();

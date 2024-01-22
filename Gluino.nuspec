@@ -26,5 +26,7 @@
     <file src="src/Gluino.Core/bin/x64/Release/Gluino.Core.dll" target="runtimes\win-x64\native\" />
     <file src="src/Gluino.Core/bin/x64/Release/Gluino.Core.pdb" target="runtimes\win-x64\native\" />
     <file src="src/Gluino.Core/bin/x64/Release/WebView2Loader.dll" target="runtimes\win-x64\native\" />
+
+    <file src="src/Gluino.SourceGeneration/bin/Release/netstandard2.0/Gluino.SourceGeneration.dll" target="analyzers/dotnet/cs" />
   </files>
 </package>

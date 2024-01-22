@@ -98,6 +98,14 @@ public partial class TestWindow : Window
         return "Test result";
     }
 
+    [Binding]
+    public static async Task<string> TestAsync(string arg1, string arg2)
+    {
+        Console.WriteLine($@"[METHOD] [WebView] TestAsync: {arg1}, {arg2}");
+        await Task.Delay(2000);
+        return await Task.FromResult("Async test result");
+    }
+
     private static void LogWindowEvent(string message) => Console.WriteLine(@"[EVENT] [Window] {0}", message);
     private static void LogWebViewEvent(string message) => Console.WriteLine(@"[EVENT] [WebView] {0}", message);
 }
