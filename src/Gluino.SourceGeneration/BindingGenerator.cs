@@ -68,12 +68,12 @@ public class BindingGenerator : ISourceGenerator
                     {
                         private const string BindingPrefix = "bind:";
                         private const string BindingWindowName = "{{{bwnd.Name.ToCamelCase()}}}";
-                        
+                
                         private static readonly JsonSerializerOptions BindingJsonOptions = new JsonSerializerOptions() {
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                             PropertyNameCaseInsensitive = true
                         };
-                        
+                
                         private void InjectBinding(string name, string[] paramNames, bool global)
                         {
                             var jsArgs = string.Join(", ", paramNames);
@@ -85,48 +85,47 @@ public class BindingGenerator : ISourceGenerator
                                   });
                                 }
                                 """;
-                        
+                
                             WebView.InjectScriptOnDocumentCreated(js);
                         }
-                        
+                
                         protected override void InitializeBindings()
                         {
                             {{{injectBuilder.ToString().Trim()}}}
                             
                             WebView.MessageReceived += OnWebViewMessageReceived;
                         }
-                        
+                
                         private async void OnWebViewMessageReceived(object sender, string e)
                         {
                             if (!e.StartsWith(BindingPrefix)) return;
                         
                             var json = e[BindingPrefix.Length..];
                             var data = JsonSerializer.Deserialize<BindData>(json, BindingJsonOptions);
-                        
-                            //generate case expressions
+                
                             var result = data.Name switch {
                                 {{{invokeBuilder.ToString().Trim()}}}
-                                _ => null
+                                _ => default
                             };
-                            
+                
                             var resultJson = JsonSerializer.Serialize(new {
                                 data.Id,
                                 Ret = result
                             }, BindingJsonOptions);
                             WebView.SendMessage(BindingPrefix + resultJson);
                         }
-                        
+                
                         private class BindData
                         {
                             public string Id { get; set; }
                             public string Name { get; set; }
                             public List<JsonElement> Args { get; set; }
-                        
+                
                             public T Arg<T>(int index)
                             {
                                 if (Args.Count == 0) return default;
                                 if (index >= Args.Count) return default;
-                        
+                
                                 return Args[index].Deserialize<T>(BindingJsonOptions);
                             }
                         }

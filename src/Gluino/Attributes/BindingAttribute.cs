@@ -2,7 +2,6 @@
 
 /// <summary>
 /// Indicates that a binding should be created for the method.<br/>
-/// Does the same thing as <see cref="WebView.Bind"/> except TypeScript definitions will be generated.<br/>
 /// The generated TypeScript definitions are written to a folder named <c>TypeScript</c> in your project folder.
 /// </summary>
 /// <remarks>
