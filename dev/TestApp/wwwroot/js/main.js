@@ -1,7 +1,7 @@
 const counter = document.getElementById('counter');
 
 const { sendMessage, addListener } = window.gluino;
-const { test, testAsync } = window.gluino.bindings.testWindow;
+const { test, testAsync, openChildWindow } = window.gluino.bindings.testWindow;
 
 function updateCounter() {
   const count = parseInt(counter.innerText);
@@ -20,4 +20,8 @@ async function testBind() {
 async function testBindAsync() {
   const result = await testAsync('this is arg 1', 'this is arg 2');
   console.log(result);
+}
+
+async function openChild() {
+  await openChildWindow();
 }

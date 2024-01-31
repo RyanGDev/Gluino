@@ -1,5 +1,4 @@
 ﻿using Gluino;
-using System.Reflection;
 using TestApp.Properties;
 
 namespace TestApp;
@@ -18,9 +17,7 @@ public partial class TestWindow : Window
         //StartupLocation = WindowStartupLocation.Default;
         //MinimizeEnabled = true;
         //MaximizeEnabled = false;
-
-        var assembly = Assembly.GetExecutingAssembly();
-
+        
         //WebView.StartSource = "https://google.com";
         WebView.StartSource = WebViewSource.FromResource("index.html");
         WebView.ContextMenuEnabled = true;
@@ -53,42 +50,7 @@ public partial class TestWindow : Window
         WebView.NavigationEnd += (_, _) => LogWebViewEvent("NavigationEnd");
         WebView.MessageReceived += (_, e) => LogWebViewEvent($"MessageReceived: {e}");
 
-        var resourceDir = $"{assembly.GetName().Name}.wwwroot";
-        WebView.ResourceRequested += (_, e) => {
-            if (!e.Request.Url.StartsWith("app://")) {
-                return;
-            }
-
-            var path = e.Request.Url[6..];
-            var resourceName = $"{resourceDir}.{path.Trim('/').Replace('/', '.')}";
-            var resource = assembly.GetManifestResourceStream(resourceName);
-
-            e.Response.Content = resource;
-            e.Response.ContentType = Path.GetExtension(path) switch {
-                ".html" => "text/html",
-                ".css" => "text/css",
-                ".js" => "text/javascript",
-                ".png" => "image/png",
-                ".jpg" => "image/jpeg",
-                ".jpeg" => "image/jpeg",
-                ".gif" => "image/gif",
-                ".svg" => "image/svg+xml",
-                ".ico" => "image/x-icon",
-                ".json" => "application/json",
-                ".woff" => "font/woff",
-                ".woff2" => "font/woff2",
-                ".ttf" => "font/ttf",
-                ".otf" => "font/otf",
-                ".eot" => "application/vnd.ms-fontobject",
-                ".sfnt" => "application/font-sfnt",
-                ".xml" => "text/xml",
-                ".txt" => "text/plain",
-                _ => "application/octet-stream"
-            };
-            e.Response.StatusCode = 200;
-
-            LogWebViewEvent($"ResourceRequested: {e.Request.Url}");
-        };
+        _ = new AppResourceScheme(WebView);
     }
 
     [Binding]
@@ -106,6 +68,13 @@ public partial class TestWindow : Window
         return await Task.FromResult("Async test result");
     }
 
+    [Binding]
+    public static void OpenChildWindow()
+    {
+        var childWindow = new ChildWindow();
+        childWindow.Show();
+    }
+    
     private static void LogWindowEvent(string message) => Console.WriteLine(@"[EVENT] [Window] {0}", message);
-    private static void LogWebViewEvent(string message) => Console.WriteLine(@"[EVENT] [WebView] {0}", message);
+    internal static void LogWebViewEvent(string message) => Console.WriteLine(@"[EVENT] [WebView] {0}", message);
 }
