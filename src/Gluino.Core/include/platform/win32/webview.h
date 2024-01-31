@@ -22,6 +22,7 @@ public:
 
 	void Refit(const WindowBorderStyle& borderStyle) const;
 	void Focus() const;
+	void NotifyParentWindowPositionChanged() const;
 
 	void Attach(WindowBase* window) override;
 	void Navigate(cstr url) override;

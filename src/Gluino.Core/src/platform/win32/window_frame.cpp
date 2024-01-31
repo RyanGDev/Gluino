@@ -15,6 +15,10 @@ WindowFrame::WindowFrame(const HWND hWndWindow) {
 	_hWndWindow = hWndWindow;
 }
 
+WindowFrame::~WindowFrame() {
+	Detach();
+}
+
 void WindowFrame::Attach() {
 	if (_isAttached) return;
 	for (int i = 0; i < 8; ++i) {

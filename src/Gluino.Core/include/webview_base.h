@@ -22,7 +22,11 @@ public:
 		_onMessageReceived = (StringDelegate)events->OnMessageReceived;
 		_onResourceRequested = (WebResourceDelegate)events->OnResourceRequested;
 	}
-	virtual ~WebViewBase() = default;
+	virtual ~WebViewBase() {
+		delete[] _startUrl;
+		delete[] _startContent;
+		delete[] _userAgent;
+	}
 
 	virtual void Attach(WindowBase* window) = 0;
 	virtual void Navigate(cstr url) = 0;

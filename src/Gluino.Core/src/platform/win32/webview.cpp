@@ -10,7 +10,12 @@ using namespace Microsoft::WRL;
 using namespace Gluino;
 
 WebView::~WebView() {
-	delete[] _userAgent;
+	_webviewSettings2.reset();
+	_webviewSettings.reset();
+	_webviewController2.reset();
+	_webviewController.reset();
+	_webviewEnv.reset();
+	_webview.reset();
 }
 
 void WebView::Refit(const WindowBorderStyle& borderStyle) const {
@@ -32,6 +37,11 @@ void WebView::Refit(const WindowBorderStyle& borderStyle) const {
 void WebView::Focus() const {
 	if (!_webviewController) return;
 	_webviewController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+}
+
+void WebView::NotifyParentWindowPositionChanged() const {
+	if (!_webviewController) return;
+	_webviewController->NotifyParentWindowPositionChanged();
 }
 
 void WebView::Attach(WindowBase* window) {

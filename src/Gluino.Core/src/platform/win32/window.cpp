@@ -50,7 +50,10 @@ Window::Window(const WindowOptions* options, const WindowEvents* events, WebView
 }
 
 Window::~Window() {
-	delete[] _title;
+	delete _frame;
+	_frame = nullptr;
+	delete _webView;
+	_webView = nullptr;
 }
 
 LRESULT Window::WndProc(const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -96,6 +99,7 @@ LRESULT Window::WndProc(const UINT msg, const WPARAM wParam, const LPARAM lParam
 		}
 		case WM_MOVE: {
 			_onLocationChanged(GetLocation());
+			_webView->NotifyParentWindowPositionChanged();
 			break;
 		}
 		case WM_GETMINMAXINFO: {
@@ -274,7 +278,7 @@ void Window::SetBorderStyle(const WindowBorderStyle style) {
 }
 
 WindowState Window::GetWindowState() {
-	WINDOWPLACEMENT placement;
+	WINDOWPLACEMENT placement{};
 	if (GetWindowPlacement(_hWnd, &placement))
 		return WindowState::Normal;
 	switch (placement.showCmd) {
@@ -285,7 +289,7 @@ WindowState Window::GetWindowState() {
 }
 
 void Window::SetWindowState(const WindowState state) {
-	WINDOWPLACEMENT placement;
+	WINDOWPLACEMENT placement{};
 	if (!GetWindowPlacement(_hWnd, &placement))
 		return;
 	switch (state) {

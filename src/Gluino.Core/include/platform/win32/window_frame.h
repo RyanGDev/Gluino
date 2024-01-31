@@ -13,6 +13,7 @@ namespace Gluino {
 class WindowFrame {
 public:
 	explicit WindowFrame(HWND hWndWindow);
+	~WindowFrame();
 
 	void Attach();
 	void Detach();
