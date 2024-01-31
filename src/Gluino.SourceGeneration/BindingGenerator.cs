@@ -103,7 +103,7 @@ public class BindingGenerator : ISourceGenerator
                             var json = e[BindingPrefix.Length..];
                             var data = JsonSerializer.Deserialize<BindData>(json, BindingJsonOptions);
                 
-                            var result = data.Name switch {
+                            object result = data.Name switch {
                                 {{{invokeBuilder.ToString().Trim()}}}
                                 _ => default
                             };
@@ -269,15 +269,10 @@ public class BindingGenerator : ISourceGenerator
         public INamedTypeSymbol[] GetNonPrimitives()
         {
             var list = new List<INamedTypeSymbol>();
-
-            if (!ReturnType.IsPrimitive() && !ReturnType.IsKnownType())
-                list.Add(ReturnType as INamedTypeSymbol);
-
-            var paramTypes = Parameters
-                .Select(p => p.Type)
-                .OfType<INamedTypeSymbol>()
-                .Where(t => !t.IsPrimitive() && !t.IsKnownType());
-            list.AddRange(paramTypes);
+            
+            ReturnType.GetNonPrimitives(ref list);
+            foreach (var p in Parameters)
+                p.Type.GetNonPrimitives(ref list);
 
             return [.. list];
         }
@@ -301,6 +296,48 @@ public class BindingGenerator : ISourceGenerator
 
 public static class Extensions
 {
+    public static void GetNonPrimitives(this ITypeSymbol typeSymbol, ref List<INamedTypeSymbol> list)
+    {
+        if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
+            return;
+
+        if (namedTypeSymbol.IsPrimitive())
+            return;
+
+        if (namedTypeSymbol.IsGenericNamedTypeSymbol(1, out _)) {
+            var type = namedTypeSymbol.TypeArguments[0];
+            if (list.Contains(type, SymbolEqualityComparer.Default))
+                return;
+            type.GetNonPrimitives(ref list);
+            return;
+        }
+
+        if (list.Contains(namedTypeSymbol, SymbolEqualityComparer.Default))
+            return;
+
+        list.Add(namedTypeSymbol);
+
+        var validMembers = namedTypeSymbol
+            .GetMembers()
+            .Where(s =>
+                s.DeclaredAccessibility is
+                    Accessibility.Public or
+                    Accessibility.Internal &&
+                !s.IsStatic);
+
+        foreach (var member in validMembers) {
+            var type = member switch {
+                IFieldSymbol { IsReadOnly: false, IsConst: false } fieldSymbol => fieldSymbol.Type,
+                IPropertySymbol { IsReadOnly: false, IsIndexer: false } propSymbol => propSymbol.Type,
+                _ => null
+            };
+
+            if (list.Contains(type, SymbolEqualityComparer.Default)) continue;
+
+            type?.GetNonPrimitives(ref list);
+        }
+    }
+
     public static string ToTypeScript(this ITypeSymbol typeSymbol)
     {
         if (!typeSymbol.IsPrimitive()) {
