@@ -52,10 +52,11 @@ public class BindingGenerator : ISourceGenerator
                 var paramNames = $"new string[] {{ {string.Join(", ", bm.Parameters.Select(p => $"\"{p.Name}\""))} }}";
                 injectBuilder.AppendLine($"{S(12)}InjectBinding(\"{bm.CustomName}\", {paramNames}, {bm.Global.ToString().ToLower()});");
 
+                var isVoid = bm.ReturnType.SpecialType == SpecialType.System_Void;
                 var isTask = bm.ReturnType.IsTask(out _);
                 var argIndex = 0;
                 var args = string.Join(", ", bm.Parameters.Select(p => $"data.Arg<{p.Type.ToDisplayString()}>({argIndex++})"));
-                invokeBuilder.AppendLine($"{S(16)}\"{bm.CustomName}\" => {(isTask ? "await" : "")} {bm.Name}({args}),");
+                invokeBuilder.AppendLine($"{S(16)}case \"{bm.CustomName}\": {(isVoid ? "" : "result = ")}{(isTask ? "await " : "")}{bm.Name}({args}); break;");
             }
 
             var source =
@@ -103,10 +104,10 @@ public class BindingGenerator : ISourceGenerator
                             var json = e[BindingPrefix.Length..];
                             var data = JsonSerializer.Deserialize<BindData>(json, BindingJsonOptions);
                 
-                            object result = data.Name switch {
+                            object result = default;
+                            switch (data.Name) {
                                 {{{invokeBuilder.ToString().Trim()}}}
-                                _ => default
-                            };
+                            }
                 
                             var resultJson = JsonSerializer.Serialize(new {
                                 data.Id,
