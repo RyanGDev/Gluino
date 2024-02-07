@@ -39,6 +39,7 @@ public class BindingGenerator : ISourceGenerator
             var ns = bwnd.Symbol.ContainingNamespace.ToDisplayString();
             var injectBuilder = new StringBuilder();
             var invokeBuilder = new StringBuilder();
+            var isAsync = false;
 
             foreach (var bm in bwnd.Methods) {
                 foreach (var p in bm.Parameters) {
@@ -57,6 +58,8 @@ public class BindingGenerator : ISourceGenerator
                 var argIndex = 0;
                 var args = string.Join(", ", bm.Parameters.Select(p => $"data.Arg<{p.Type.ToDisplayString()}>({argIndex++})"));
                 invokeBuilder.AppendLine($"{S(16)}case \"{bm.CustomName}\": {(isVoid ? "" : "result = ")}{(isTask ? "await " : "")}{bm.Name}({args}); break;");
+
+                if (isTask) isAsync = true;
             }
 
             var source =
@@ -97,7 +100,7 @@ public class BindingGenerator : ISourceGenerator
                             WebView.MessageReceived += OnWebViewMessageReceived;
                         }
                 
-                        private async void OnWebViewMessageReceived(object sender, string e)
+                        private {{{(isAsync ? "async " : "")}}}void OnWebViewMessageReceived(object sender, string e)
                         {
                             if (!e.StartsWith(BindingPrefix)) return;
                         
