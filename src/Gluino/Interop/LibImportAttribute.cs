@@ -32,4 +32,9 @@ internal class LibImportAttribute(string libName, string entryPoint) : Attribute
     /// Name of the native option if this is a property getter/setter.
     /// </summary>
     public string Option = null;
+
+    /// <summary>
+    /// The generated method return type when the native method is defined as <see cref="nint"/>.
+    /// </summary>
+    public Type ReturnType = typeof(void);
 }

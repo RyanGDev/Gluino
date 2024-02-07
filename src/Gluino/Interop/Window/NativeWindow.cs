@@ -33,8 +33,8 @@ internal partial class NativeWindow
     [LibImport("Gluino_Window_GetIsDarkMode")]
     public static partial bool GetIsDarkMode(nint window);
 
-    [LibImport("Gluino_Window_GetTitle", Managed = true, Property = PG, Option = "Title")]
-    public static partial string GetTitle(nint window);
+    [LibImport("Gluino_Window_GetTitle", Managed = true, Property = PG, Option = "Title", ReturnType = typeof(string))]
+    public static partial nint GetTitle(nint window);
 
     [LibImport("Gluino_Window_SetTitle", Managed = true, Property = PS, Option = "Title")]
     public static partial void SetTitle(nint window, string title);

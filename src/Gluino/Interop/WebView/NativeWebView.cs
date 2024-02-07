@@ -26,8 +26,8 @@ internal partial class NativeWebView
     [LibImport("Gluino_WebView_SetDevToolsEnabled", Managed = true, Property = PS, Option = nameof(NativeWebViewOptions.DevToolsEnabled))] 
     public static partial void SetDevToolsEnabled(nint webView, bool enabled);
 
-    [LibImport("Gluino_WebView_GetUserAgent", Managed = true, Property = PG, Option = "UserAgent")] 
-    public static partial string GetUserAgent(nint webView);
+    [LibImport("Gluino_WebView_GetUserAgent", Managed = true, Property = PG, Option = "UserAgent", ReturnType = typeof(string))] 
+    public static partial nint GetUserAgent(nint webView);
 
     [LibImport("Gluino_WebView_SetUserAgent", Managed = true, Property = PS, Option = "UserAgent")] 
     public static partial void SetUserAgent(nint webView, string userAgent);

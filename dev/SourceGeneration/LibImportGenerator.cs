@@ -53,9 +53,7 @@ public class LibImportGenerator : ISourceGenerator
                 
                 var methodName = methodDeclaration.Identifier.Text;
                 var methodSignature = methodSymbol.GetMethodSignature();
-
-                //var libNameOverride = libImportAttributeData.GetFieldTypeConstant("LibName").Value?.ToString() ?? libName;
-
+                
                 var libNameOverride = libImportAttributeData.ConstructorArguments.Length switch {
                     2 => libImportAttributeData.ConstructorArguments[0].Value?.ToString(),
                     _ => libImportAttributeData.NamedArguments
@@ -79,10 +77,11 @@ public class LibImportGenerator : ISourceGenerator
                         libImportAttributeData.GetFieldValueCSharpString("CallingConvention", "CallingConvention.Cdecl"),
                         libImportAttributeData.GetFieldValueCSharpString("CharSet", "CharSet.Auto"),
                         libImportAttributeData.GetFieldValueCSharpString("SetLastError", "true"),
-                        libImportAttributeData.GetFieldValue("IsStatic", false),
-                        libImportAttributeData.GetFieldValue("Managed", false),
-                        libImportAttributeData.GetFieldValue("Property", ManagedProperty.None),
-                        libImportAttributeData.GetFieldValue<string>("Option")),
+                        libImportAttributeData.GetNamedArgumentValue("IsStatic", false),
+                        libImportAttributeData.GetNamedArgumentValue("Managed", false),
+                        libImportAttributeData.GetNamedArgumentValue("Property", ManagedProperty.None),
+                        libImportAttributeData.GetNamedArgumentValue<string>("Option"),
+                        libImportAttributeData.GetNamedArgumentValue<ITypeSymbol>("ReturnType")),
                     methodSymbol
                 ));
             }
@@ -149,6 +148,7 @@ public class LibImportGenerator : ISourceGenerator
 
         var source =
             $$"""
+              using System.Runtime.InteropServices;
               using System.Drawing;
               using Gluino.Interop;
 
@@ -171,14 +171,21 @@ public class LibImportGenerator : ISourceGenerator
         string getSource = null;
         if (propertyData.Getter != null) {
             var getType = propertyData.Getter.Symbol.ReturnType.ToDisplayString();
+            var nativeCall = $"{className}.{propertyData.Getter.Name}(InstancePtr)";
+
+            if (propertyData.Getter.Import.ReturnType != null && propertyData.Getter.Import.ReturnType.IsString()) {
+                getType = "string";
+                nativeCall = $"Marshal.PtrToStringAuto({nativeCall})";
+            }
+
             getSource =
                 $$"""
                       private {{(propertyData.Getter.Import.IsStatic ? "static " : "")}}{{getType}} {{propertyData.Getter.Name}}()
                       {
                          if (InstancePtr == nint.Zero) {
-                             {{$"return NativeOptions.{propertyData.Option}"}};
+                             return NativeOptions.{{propertyData.Option}};
                          }
-                         return SafeInvoke(() => {{className}}.{{propertyData.Getter.Name}}(InstancePtr));
+                         return SafeInvoke(() => {{nativeCall}});
                       }
                   """;
         }
@@ -205,7 +212,6 @@ public class LibImportGenerator : ISourceGenerator
         return getSource != null && setSource != null
             ? $"{getSource}\r\n\r\n\r\n{setSource}"
             : getSource ?? setSource;
-        //return $"{getSource}\r\n\r\n\r\n{setSource}";
     }
 
     private class SyntaxReceiver : ISyntaxReceiver
@@ -237,7 +243,8 @@ public class LibImportGenerator : ISourceGenerator
         bool isStatic,
         bool managed,
         ManagedProperty property,
-        string option)
+        string option,
+        ITypeSymbol returnType)
     {
         public readonly string LibName = libName;
         public readonly string EntryPoint = entryPoint;
@@ -248,6 +255,7 @@ public class LibImportGenerator : ISourceGenerator
         public readonly bool Managed = managed;
         public readonly ManagedProperty Property = property;
         public readonly string Option = option;
+        public readonly ITypeSymbol ReturnType = returnType;
     }
 
     private class PropertyData(string option, NativeMethod getter, NativeMethod setter)
@@ -284,7 +292,7 @@ public static class Extensions
         return attributeData.NamedArguments.FirstOrDefault(kvp => kvp.Key == name).Value;
     }
 
-    public static T GetFieldValue<T>(this AttributeData attributeData, string name, T defaultValue = default)
+    public static T GetNamedArgumentValue<T>(this AttributeData attributeData, string name, T defaultValue = default)
     {
         var dict = attributeData.NamedArguments.ToDictionary(kv => kv.Key, kv => kv.Value);
         if (!dict.TryGetValue(name, out var tc)) return defaultValue;
@@ -295,7 +303,7 @@ public static class Extensions
 
         return (T)tc.Value;
     }
-
+    
     public static string GetFieldValueCSharpString(this AttributeData attributeData, string name, string defaultValue)
     {
         var dict = attributeData.NamedArguments.ToDictionary(kv => kv.Key, kv => kv.Value);
