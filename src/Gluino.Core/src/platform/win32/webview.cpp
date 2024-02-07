@@ -4,8 +4,6 @@
 #include <Shlwapi.h>
 #include <wrl.h>
 
-#pragma comment(lib, "Shlwapi.lib")
-
 using namespace Microsoft::WRL;
 using namespace Gluino;
 
@@ -103,7 +101,7 @@ void WebView::SetDevToolsEnabled(bool enabled) {
 	_webviewSettings->put_AreDevToolsEnabled(enabled);
 }
 
-cstr WebView::GetUserAgent() {
+ccstr WebView::GetUserAgent() {
 	wchar_t* userAgent;
 	_webviewSettings2->get_UserAgent(&userAgent);
 	return userAgent;
@@ -146,7 +144,7 @@ HRESULT WebView::OnWebView2CreateControllerCompleted(const HRESULT result, ICore
 	_webviewSettings->put_AreDevToolsEnabled(_devToolsEnabled);
 
 	_webviewSettings2 = _webviewSettings.try_query<ICoreWebView2Settings2>();
-	if (_userAgent) _webviewSettings2->put_UserAgent(_userAgent);
+	if (!_userAgent.empty()) _webviewSettings2->put_UserAgent(_userAgent.c_str());
 
 
 
@@ -204,10 +202,10 @@ HRESULT WebView::OnWebView2CreateControllerCompleted(const HRESULT result, ICore
 		Callback<ICoreWebView2PermissionRequestedEventHandler>(this,
 			&WebView::OnWebView2PermissionRequested).Get(), &permissionRequestedToken);
 
-	if (_startUrl) 
-		_webview->Navigate(_startUrl);
-	else if (_startContent) 
-		_webview->NavigateToString(_startContent);
+	if (!_startUrl.empty()) 
+		_webview->Navigate(_startUrl.c_str());
+	else if (!_startContent.empty()) 
+		_webview->NavigateToString(_startContent.c_str());
 
 	Refit(_window->GetBorderStyle());
 
@@ -245,9 +243,11 @@ HRESULT WebView::OnWebView2WebResourceRequested(ICoreWebView2* sender, ICoreWebV
 	wil::unique_cotaskmem_string reqMethod;
 	request->get_Method(&reqMethod);
 
+	const ptr<char[]> reqUriStr(CStrNarrow(reqUri.get()));
+	const ptr<char[]> reqMethodStr(CStrNarrow(reqMethod.get()));
 	const WebResourceRequest req{
-		CStrNarrow(reqUri.get()),
-		CStrNarrow(reqMethod.get()),
+		reqUriStr.get(),
+		reqMethodStr.get(),
 	};
 	WebResourceResponse res;
 	_onResourceRequested(req, &res);
@@ -255,7 +255,8 @@ HRESULT WebView::OnWebView2WebResourceRequested(ICoreWebView2* sender, ICoreWebV
 	const wil::unique_cotaskmem content(res.Content);
 
 	if (content != nullptr) {
-		const std::wstring contentTypeW(CStrWiden(res.ContentType));
+		const auto reasonPhrase = CharToCppStr(res.ReasonPhrase);
+		const auto contentType = CharToCppStr(res.ContentType);
 
 		IStream* stream = SHCreateMemStream((BYTE*)content.get(), res.ContentLength);
 		wil::com_ptr<ICoreWebView2WebResourceResponse> response;
@@ -263,11 +264,13 @@ HRESULT WebView::OnWebView2WebResourceRequested(ICoreWebView2* sender, ICoreWebV
 		_webviewEnv->CreateWebResourceResponse(
 			stream,
 			res.StatusCode,
-			CStrWiden(res.ReasonPhrase),
-			(L"" + contentTypeW).c_str(),
+			reasonPhrase.c_str(),
+			(L"" + contentType).c_str(),
 			&response);
 
 		args->put_Response(response.get());
+
+		stream->Release();
 	}
 
 	return S_OK;

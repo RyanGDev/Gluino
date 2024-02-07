@@ -20,7 +20,7 @@ Window::Window(const WindowOptions* options, const WindowEvents* events, WebView
     _hWnd = CreateWindowEx(
         WS_EX_NOREDIRECTIONBITMAP,
         App::GetWndClassName(),
-        _title,
+        _title.c_str(),
         WS_OVERLAPPEDWINDOW,
         x,
         y,
@@ -217,17 +217,14 @@ bool Window::GetIsDarkMode() {
 	return _theme == WindowTheme::System ? IsDarkModeEnabled() : _theme == WindowTheme::Dark;
 }
 
-cstr Window::GetTitle() {
-	const auto length = GetWindowTextLength(_hWnd);
-	const auto title = new wchar_t[length + 1];
-	GetWindowText(_hWnd, title, length + 1);
-	return title;
+ccstr Window::GetTitle() {
+	return _title.c_str();
 }
 
 void Window::SetTitle(const cstr title) {
-	_title = CStrCopy(title);
+	_title = title;
 
-	SetWindowText(_hWnd, _title);
+	SetWindowText(_hWnd, _title.c_str());
 }
 
 void Window::GetIcon(void** data, int* size) {

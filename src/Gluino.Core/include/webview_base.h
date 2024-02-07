@@ -11,10 +11,10 @@ namespace Gluino {
 
 class WebViewBase {
 public:
-	explicit WebViewBase(WebViewOptions* options, const WebViewEvents* events) {
-		_startUrl = CStrWiden(options->StartUrl);
-		_startContent = CStrWiden(options->StartContent);
-		_userAgent = CStrWiden(options->UserAgent);
+	explicit WebViewBase(const WebViewOptions* options, const WebViewEvents* events) {
+		_startUrl = CharToCppStr(options->StartUrl);
+		_startContent = CharToCppStr(options->StartContent);
+		_userAgent = CharToCppStr(options->UserAgent);
 
 		_onCreated = (Delegate)events->OnCreated;
 		_onNavigationStart = (StringDelegate)events->OnNavigationStart;
@@ -22,11 +22,7 @@ public:
 		_onMessageReceived = (StringDelegate)events->OnMessageReceived;
 		_onResourceRequested = (WebResourceDelegate)events->OnResourceRequested;
 	}
-	virtual ~WebViewBase() {
-		delete[] _startUrl;
-		delete[] _startContent;
-		delete[] _userAgent;
-	}
+	virtual ~WebViewBase() = default;
 
 	virtual void Attach(WindowBase* window) = 0;
 	virtual void Navigate(cstr url) = 0;
@@ -40,13 +36,13 @@ public:
 	virtual bool GetDevToolsEnabled() = 0;
 	virtual void SetDevToolsEnabled(bool enabled) = 0;
 
-	virtual cstr GetUserAgent() = 0;
+	virtual ccstr GetUserAgent() = 0;
 	virtual void SetUserAgent(cstr userAgent) = 0;
 
 protected:
-	cstr _startUrl;
-	cstr _startContent;
-	cstr _userAgent;
+	cppstr _startUrl;
+	cppstr _startContent;
+	cppstr _userAgent;
 
 	Delegate _onCreated;
 	StringDelegate _onNavigationStart;

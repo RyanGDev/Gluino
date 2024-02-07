@@ -75,26 +75,6 @@ void AdjustMaximizedClientRect(HWND hWnd, RECT& rect) noexcept;
 void ApplyBorderlessStyle(HWND hWnd, bool borderless) noexcept;
 void ApplyWindowStyle(HWND hWnd, bool darkMode) noexcept;
 
-inline wchar_t* CStrWiden(const char* str) {
-    if (str == nullptr) return nullptr;
-
-    const auto len = (int)strlen(str);
-    if (len == 0) return nullptr;
-
-    const int wlen = MultiByteToWideChar(CP_UTF8, 0, str, len, nullptr, 0);
-    if (wlen == 0) return nullptr;
-
-    const auto wstr = new wchar_t[wlen + 1];
-    if (const auto result = MultiByteToWideChar(CP_UTF8, 0, str, len, wstr, wlen);
-        result == 0) {
-        delete[] wstr;
-        return nullptr;
-    }
-
-    wstr[wlen] = L'\0';
-    return wstr;
-}
-
 inline char* CStrNarrow(const wchar_t* wstr) {
     if (wstr == nullptr) return nullptr;
 
@@ -114,6 +94,17 @@ inline char* CStrNarrow(const wchar_t* wstr) {
     str[len] = '\0';
     return str;
 }
+
+class VisualStyleContext
+{
+public:
+    VisualStyleContext();
+    ~VisualStyleContext();
+
+private:
+    static HANDLE CreateActivationContext();
+    ULONG_PTR _cookie = 0;
+};
 
 }
 

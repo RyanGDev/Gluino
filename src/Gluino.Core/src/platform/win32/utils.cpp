@@ -236,3 +236,33 @@ void Gluino::ApplyWindowStyle(const HWND hWnd, const bool darkMode) noexcept {
     constexpr DWM_SYSTEMBACKDROP_TYPE value = DWMSBT_MAINWINDOW;
     DwmSetWindowAttribute(hWnd, DWMWA_SYSTEMBACKDROP_TYPE, &value, sizeof value);
 }
+
+VisualStyleContext::VisualStyleContext()
+{
+    static HANDLE hctx = CreateActivationContext();
+
+    if (hctx != INVALID_HANDLE_VALUE)
+        ActivateActCtx(hctx, &_cookie);
+}
+
+VisualStyleContext::~VisualStyleContext()
+{
+    DeactivateActCtx(0, _cookie);
+}
+
+HANDLE VisualStyleContext::CreateActivationContext()
+{
+    const auto len = GetSystemDirectoryA(nullptr, 0);
+    const auto sysDir = new char[len];
+    GetSystemDirectoryA(sysDir, len);
+
+    const ACTCTXA actCtx = {
+        sizeof(actCtx),
+        ACTCTX_FLAG_RESOURCE_NAME_VALID | ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID,
+        "shell32.dll", 0, 0, sysDir, (LPCSTR)124, nullptr, nullptr,
+    };
+
+    delete[] sysDir;
+
+    return CreateActCtxA(&actCtx);
+}

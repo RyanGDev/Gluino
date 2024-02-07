@@ -9,16 +9,14 @@
 
 #include <Windows.h>
 
-#pragma comment(lib, "Dwmapi.lib")
-
 #define WM_USER_INVOKE (WM_USER + 0x0002)
 
 namespace Gluino {
 
 class App final : public AppBase {
 public:
-	explicit App(HINSTANCE hInstance, wchar_t* appId);
-	~App() override;
+	explicit App(HINSTANCE hInstance, const wchar_t* appId);
+	~App() override = default;
 
 	void SpawnWindow(
 		WindowOptions* windowOptions, WindowEvents* windowEvents,
@@ -29,13 +27,14 @@ public:
 	void Exit() override;
 
 	static HINSTANCE GetHInstance();
-	static wchar_t* GetWndClassName();
+	static const wchar_t* GetWndClassName();
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
 	HINSTANCE _hInstance;
-	wchar_t* _appId;
-	wchar_t* _wndClassName;
+	ptr<VisualStyleContext> _visualStyleContext;
+	cppstr _appId;
+	cppstr _wndClassName;
 };
 
 }

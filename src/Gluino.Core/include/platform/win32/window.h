@@ -31,7 +31,7 @@ public:
 	void GetBounds(Rect* bounds) override;
 	bool GetIsDarkMode() override;
 
-	cstr GetTitle() override;
+	ccstr GetTitle() override;
 	void SetTitle(cstr title) override;
 
 	void GetIcon(void** data, int* size) override;

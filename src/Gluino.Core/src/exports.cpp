@@ -36,7 +36,7 @@ extern "C" {
 
 	EXPORT bool Gluino_Window_GetIsDarkMode(Window* window) { return window->GetIsDarkMode(); }
 
-	EXPORT cstr Gluino_Window_GetTitle(Window* window) { return window->GetTitle(); }
+	EXPORT ccstr Gluino_Window_GetTitle(Window* window) { return window->GetTitle(); }
 	EXPORT void Gluino_Window_SetTitle(Window* window, const cstr title) { window->SetTitle(title); }
 
 	EXPORT void Gluino_Window_GetIcon(Window* window, void** data, int* size) { window->GetIcon(data, size); }
@@ -86,6 +86,6 @@ extern "C" {
 	EXPORT bool Gluino_WebView_GetDevToolsEnabled(WebView* webView) { return webView->GetDevToolsEnabled(); }
 	EXPORT void Gluino_WebView_SetDevToolsEnabled(WebView* webView, const bool enabled) { webView->SetDevToolsEnabled(enabled); }
 
-	EXPORT cstr Gluino_WebView_GetUserAgent(WebView* webView) { return webView->GetUserAgent(); }
+	EXPORT ccstr Gluino_WebView_GetUserAgent(WebView* webView) { return webView->GetUserAgent(); }
 	EXPORT void Gluino_WebView_SetUserAgent(WebView* webView, const cstr userAgent) { webView->SetUserAgent(userAgent); }
 }

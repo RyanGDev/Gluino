@@ -14,7 +14,7 @@ class WindowBase {
 public:
 	explicit WindowBase(const WindowOptions* options, const WindowEvents* events) {
 		_isMain = options->IsMain;
-		_title = CStrWiden(options->Title);
+		_title = CharToCppStr(options->Title);
 		_icon = options->Icon;
 		_iconSize = options->IconSize;
 		_borderStyle = options->BorderStyle;
@@ -32,10 +32,7 @@ public:
 		_onClosing = (Predicate)events->OnClosing;
 		_onClosed = (Delegate)events->OnClosed;
 	}
-
-	virtual ~WindowBase() {
-		delete[] _title;
-	}
+	virtual ~WindowBase() = default;
 
 	[[nodiscard]] bool IsMain() const { return _isMain; }
 
@@ -49,7 +46,7 @@ public:
 	virtual void GetBounds(Rect* bounds) = 0;
 	virtual bool GetIsDarkMode() = 0;
 
-	virtual cstr GetTitle() = 0;
+	virtual ccstr GetTitle() = 0;
 	virtual void SetTitle(cstr title) = 0;
 
 	virtual void GetIcon(void** data, int* size) = 0;
@@ -87,7 +84,7 @@ public:
 
 protected:
 	bool _isMain;
-	cstr _title;
+	cppstr _title;
 	void* _icon;
 	int _iconSize;
 	WindowBorderStyle _borderStyle;

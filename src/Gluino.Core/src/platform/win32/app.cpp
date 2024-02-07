@@ -10,12 +10,13 @@ using namespace Gluino;
 App* app{};
 std::map<HWND, Window*> windowMap{};
 
-App::App(const HINSTANCE hInstance, wchar_t* appId) {
+App::App(const HINSTANCE hInstance, const wchar_t* appId) {
 	_hInstance = hInstance;
-	_appId = CStrCopy(appId);
-	_wndClassName = CStrConcat(_appId, L"Window");
+	_visualStyleContext = newptr<VisualStyleContext>();
+	_appId = appId;
+	_wndClassName = _appId + L"Window";
 
-	SetCurrentProcessExplicitAppUserModelID(_appId);
+	SetCurrentProcessExplicitAppUserModelID(_appId.c_str());
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
 	WNDCLASSEX wcex;
@@ -30,16 +31,11 @@ App::App(const HINSTANCE hInstance, wchar_t* appId) {
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
 	wcex.lpszMenuName = nullptr;
-	wcex.lpszClassName = _wndClassName;
+	wcex.lpszClassName = _wndClassName.c_str();
 
 	RegisterClassEx(&wcex);
 
 	app = this;
-}
-
-App::~App() {
-	delete[] _appId;
-	delete[] _wndClassName;
 }
 
 void App::SpawnWindow(
@@ -85,8 +81,8 @@ HINSTANCE App::GetHInstance() {
 	return app->_hInstance;
 }
 
-wchar_t* App::GetWndClassName() {
-	return app->_wndClassName;
+const wchar_t* App::GetWndClassName() {
+	return app->_wndClassName.c_str();
 }
 
 LRESULT App::WndProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {

@@ -6,6 +6,9 @@
 #ifdef _WIN32
 #include "utils.h"
 #include <wchar.h>
+
+#pragma comment(lib, "Dwmapi.lib")
+#pragma comment(lib, "Shlwapi.lib")
 #else
 #include <cstring>
 #endif
@@ -22,8 +25,17 @@ namespace Gluino {
 #define EXPORT __declspec(dllexport)
 
 typedef wchar_t* cstr;
+typedef const wchar_t* ccstr;
 typedef std::wstring cppstr;
 typedef std::wstringstream cppstrstream;
+
+template<typename T>
+using ptr = std::unique_ptr<T>;
+
+template<typename T, typename... Args>
+constexpr auto newptr(Args&&... args) {
+    return std::make_unique<T>(std::forward<Args>(args)...);
+}
 #else
 #define EXPORT
 
@@ -107,7 +119,7 @@ typedef void (*PointDelegate)(Point);
 typedef void (*StringDelegate)(cstr);
 typedef void (*IntDelegate)(int);
 typedef void (*WebResourceDelegate)(WebResourceRequest, WebResourceResponse*);
-typedef void (__stdcall *ExecuteScriptCallback)(bool success, cstr result);
+typedef void(__stdcall* ExecuteScriptCallback)(bool success, cstr result);
 
 inline cstr CStrCopy(cstr source) {
     cstr result;
@@ -151,6 +163,17 @@ cstr CStrConcat(Args... args) {
 #endif
 
     return concatenated;
+}
+
+inline cppstr CharToCppStr(const char* str) {
+#ifdef _WIN32
+    const auto size = MultiByteToWideChar(CP_UTF8, 0, str, -1, nullptr, 0);
+    std::wstring wstr(size, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr.data(), size);
+    return wstr;
+#else
+    return cppstr(str);
+#endif
 }
 
 }

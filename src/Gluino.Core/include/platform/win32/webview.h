@@ -13,7 +13,7 @@ namespace Gluino {
 
 class WebView final : public WebViewBase {
 public:
-	explicit WebView(WebViewOptions* options, const WebViewEvents* events) : WebViewBase(options, events) {
+	explicit WebView(const WebViewOptions* options, const WebViewEvents* events) : WebViewBase(options, events) {
 		_contextMenuEnabled = options->ContextMenuEnabled;
 		_devToolsEnabled = options->DevToolsEnabled;
 		_grantPermissions = options->GrantPermissions;
@@ -38,7 +38,7 @@ public:
 	bool GetDevToolsEnabled() override;
 	void SetDevToolsEnabled(bool enabled) override;
 
-	cstr GetUserAgent() override;
+	ccstr GetUserAgent() override;
 	void SetUserAgent(cstr userAgent) override;
 
 private:
