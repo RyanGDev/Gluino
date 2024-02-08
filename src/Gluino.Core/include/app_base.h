@@ -10,16 +10,16 @@ namespace Gluino {
 
 class AppBase {
 public:
-	virtual ~AppBase() = default;
+    virtual ~AppBase() = default;
 
-	virtual void SpawnWindow(
-		WindowOptions* windowOptions, WindowEvents* windowEvents,
-		WebViewOptions* webViewOptions,	WebViewEvents* webViewEvents,
-		WindowBase** window, WebViewBase** webView) = 0;
-	virtual void DespawnWindow(WindowBase* window) = 0;
+    virtual void SpawnWindow(
+        WindowOptions* windowOptions, WindowEvents* windowEvents,
+        WebViewOptions* webViewOptions,	WebViewEvents* webViewEvents,
+        WindowBase** window, WebViewBase** webView) = 0;
+    virtual void DespawnWindow(WindowBase* window) = 0;
 
-	virtual void Run() = 0;
-	virtual void Exit() = 0;
+    virtual void Run() = 0;
+    virtual void Exit() = 0;
 };
 
 }

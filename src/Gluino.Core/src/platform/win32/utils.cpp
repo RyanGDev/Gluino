@@ -56,7 +56,7 @@ void EnableDarkModeForApp() noexcept {
 
 DWORD GetBuildNumber() noexcept {
     const auto rtlGetNtVersionNumbers = (FnRtlGetNtVersionNumbers)GetProcAddress(
-		GetModuleHandleW(L"ntdll.dll"), "RtlGetNtVersionNumbers");
+        GetModuleHandleW(L"ntdll.dll"), "RtlGetNtVersionNumbers");
 
     if (rtlGetNtVersionNumbers == nullptr) {
         return 0;
@@ -177,8 +177,8 @@ bool Gluino::IsCompositionEnabled() noexcept
 void Gluino::AdjustMaximizedClientRect(const HWND hWnd, RECT& rect) noexcept {
     WINDOWPLACEMENT wp;
     if (!GetWindowPlacement(hWnd, &wp)) {
-    	return;
-	}
+        return;
+    }
 
     if (const auto maximized = wp.showCmd == SW_MAXIMIZE; !maximized) {
         return;

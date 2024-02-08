@@ -6,12 +6,12 @@
 namespace Gluino {
 
 struct WebViewOptions {
-	char* StartUrl;
-	char* StartContent;
-	bool ContextMenuEnabled;
-	bool DevToolsEnabled;
-	char* UserAgent;
-	bool GrantPermissions;
+    char* StartUrl;
+    char* StartContent;
+    bool ContextMenuEnabled;
+    bool DevToolsEnabled;
+    char* UserAgent;
+    bool GrantPermissions;
 };
 
 }

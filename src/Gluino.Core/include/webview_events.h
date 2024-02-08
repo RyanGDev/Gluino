@@ -8,11 +8,11 @@
 namespace Gluino {
 
 struct WebViewEvents {
-	Delegate* OnCreated;
-	StringDelegate* OnNavigationStart;
-	Delegate* OnNavigationEnd;
-	StringDelegate* OnMessageReceived;
-	WebResourceDelegate* OnResourceRequested;
+    Delegate* OnCreated;
+    StringDelegate* OnNavigationStart;
+    Delegate* OnNavigationEnd;
+    StringDelegate* OnMessageReceived;
+    WebResourceDelegate* OnResourceRequested;
 };
 
 }

@@ -11,102 +11,102 @@ App* app{};
 std::map<HWND, Window*> windowMap{};
 
 App::App(const HINSTANCE hInstance, const wchar_t* appId) {
-	_hInstance = hInstance;
-	_visualStyleContext = newptr<VisualStyleContext>();
-	_appId = appId;
-	_wndClassName = _appId + L"Window";
+    _hInstance = hInstance;
+    _visualStyleContext = newptr<VisualStyleContext>();
+    _appId = appId;
+    _wndClassName = _appId + L"Window";
 
-	SetCurrentProcessExplicitAppUserModelID(_appId.c_str());
-	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    SetCurrentProcessExplicitAppUserModelID(_appId.c_str());
+    SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-	WNDCLASSEX wcex;
-	wcex.cbSize = sizeof WNDCLASSEX;
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = WndProc;
-	wcex.cbClsExtra = 0;
-	wcex.cbWndExtra = WS_EX_NOPARENTNOTIFY;
-	wcex.hInstance = _hInstance;
-	wcex.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
-	wcex.hIconSm = LoadIcon(nullptr, IDI_WINLOGO);
-	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = nullptr;
-	wcex.lpszClassName = _wndClassName.c_str();
+    WNDCLASSEX wcex;
+    wcex.cbSize = sizeof WNDCLASSEX;
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = WndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = WS_EX_NOPARENTNOTIFY;
+    wcex.hInstance = _hInstance;
+    wcex.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    wcex.hIconSm = LoadIcon(nullptr, IDI_WINLOGO);
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+    wcex.lpszMenuName = nullptr;
+    wcex.lpszClassName = _wndClassName.c_str();
 
-	RegisterClassEx(&wcex);
+    RegisterClassEx(&wcex);
 
-	app = this;
+    app = this;
 }
 
 void App::SpawnWindow(
-	WindowOptions* windowOptions, WindowEvents* windowEvents,
-	WebViewOptions* webViewOptions, WebViewEvents* webViewEvents,
-	WindowBase** window, WebViewBase** webView) {
-	const auto wv = new WebView(webViewOptions, webViewEvents);
-	const auto wnd = new Window(windowOptions, windowEvents, wv);
+    WindowOptions* windowOptions, WindowEvents* windowEvents,
+    WebViewOptions* webViewOptions, WebViewEvents* webViewEvents,
+    WindowBase** window, WebViewBase** webView) {
+    const auto wv = new WebView(webViewOptions, webViewEvents);
+    const auto wnd = new Window(windowOptions, windowEvents, wv);
 
-	windowMap[wnd->GetHandle()] = wnd;
+    windowMap[wnd->GetHandle()] = wnd;
 
-	*window = wnd;
-	*webView = wv;
+    *window = wnd;
+    *webView = wv;
 }
 
 void App::DespawnWindow(WindowBase* window) {
-	const auto win32Window = (Window*)window;
-	const HWND hWnd = win32Window->GetHandle();
+    const auto win32Window = (Window*)window;
+    const HWND hWnd = win32Window->GetHandle();
 
-	WCHAR className[256];
-	GetClassName(hWnd, className, 256);
+    WCHAR className[256];
+    GetClassName(hWnd, className, 256);
 
-	UnregisterClass(className, _hInstance);
-	windowMap.erase(hWnd);
+    UnregisterClass(className, _hInstance);
+    windowMap.erase(hWnd);
 
-	if (window->IsMain())
-		Exit();
+    if (window->IsMain())
+        Exit();
 }
 
 void App::Run() {
-	MSG msg;
-	while (GetMessage(&msg, nullptr, 0, 0)) {
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
-	}
+    MSG msg;
+    while (GetMessage(&msg, nullptr, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
 }
 
 void App::Exit() {
-	PostQuitMessage(0);
+    PostQuitMessage(0);
 }
 
 HINSTANCE App::GetHInstance() {
-	return app->_hInstance;
+    return app->_hInstance;
 }
 
 const wchar_t* App::GetWndClassName() {
-	return app->_wndClassName.c_str();
+    return app->_wndClassName.c_str();
 }
 
 LRESULT App::WndProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
-	const auto window = windowMap[hWnd];
+    const auto window = windowMap[hWnd];
 
-	switch (msg) {
-		case WM_DESTROY: {
-			if (windowMap.contains(hWnd))
-				app->DespawnWindow(windowMap[hWnd]);
-			break;
-		}
-		case WM_USER_INVOKE: {
-			const auto callback = (Delegate)wParam;
-			callback();
+    switch (msg) {
+        case WM_DESTROY: {
+            if (windowMap.contains(hWnd))
+                app->DespawnWindow(windowMap[hWnd]);
+            break;
+        }
+        case WM_USER_INVOKE: {
+            const auto callback = (Delegate)wParam;
+            callback();
 
-			const auto promise = (std::promise<void>*)lParam;
-			promise->set_value();
-			return 0;
-		}
-		default: break;
-	}
+            const auto promise = (std::promise<void>*)lParam;
+            promise->set_value();
+            return 0;
+        }
+        default: break;
+    }
 
-	if (window)
-		return window->WndProc(msg, wParam, lParam);
+    if (window)
+        return window->WndProc(msg, wParam, lParam);
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+    return DefWindowProc(hWnd, msg, wParam, lParam);
 }
