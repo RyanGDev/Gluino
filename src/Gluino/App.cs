@@ -22,6 +22,10 @@ public static class App
         else {
             //TODO: NativeInstance = NativeApp.Create();
         }
+
+        Options = new() {
+            UserDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Name)
+        };
     }
     
     /// <summary>
@@ -29,6 +33,11 @@ public static class App
     /// </summary>
     public static string Name { get; set; } = Assembly.GetEntryAssembly()?.GetName().Name ?? "Gluino";
     
+    /// <summary>
+    /// Gets or sets global application options.
+    /// </summary>
+    public static AppOptions Options { get; }
+
     /// <summary>
     /// Gets the main <see cref="Window"/>.
     /// </summary>

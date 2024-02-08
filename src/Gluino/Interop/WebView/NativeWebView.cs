@@ -11,6 +11,9 @@ internal partial class NativeWebView
     [LibImport("Gluino_WebView_PostWebMessage")] public static partial void PostWebMessage(nint webView, string message);
     [LibImport("Gluino_WebView_InjectScript")] public static partial void InjectScript(nint webView, string script, bool onDocumentCreated);
 
+    [LibImport("Gluino_WebView_GetUserDataPath", Managed = true, Property = PG, Option = "UserDataPath", ReturnType = typeof(string))]
+    public static partial nint GetUserDataPath(nint webView);
+
     [LibImport("Gluino_WebView_GetGrantPermissions", Managed = true, Property = PG, Option = nameof(NativeWebViewOptions.GrantPermissions))]
     public static partial bool GetGrantPermissions(nint webView);
 

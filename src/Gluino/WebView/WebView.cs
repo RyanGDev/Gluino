@@ -38,7 +38,9 @@ public partial class WebView
     internal WebView(Window window, Action fnInitBindings)
     {
         NativeOptions = new() {
-            ContextMenuEnabled = true
+            UserDataPath = App.Options.UserDataPath,
+            ContextMenuEnabled = true,
+            UserAgent = App.Options.UserAgent
         };
 
         NativeEvents = new() {
@@ -52,7 +54,21 @@ public partial class WebView
         _window = window;
         _fnInitBindings = fnInitBindings;
     }
-    
+
+    /// <summary>
+    /// Gets or sets the user data path for the WebView.
+    /// </summary>
+    /// <remarks>
+    /// Can only be set before the WebView is created.
+    /// </remarks>
+    public string UserDataPath {
+        get => GetUserDataPath();
+        set {
+            if (InstancePtr != nint.Zero) return;
+            NativeOptions.UserDataPath = value;
+        }
+    }
+
     /// <summary>
     /// Sets the source URL or HTML content to load when the WebView is created.
     /// </summary>
@@ -100,6 +116,7 @@ public partial class WebView
     /// </summary>
     /// <remarks>
     /// Default: false<br />
+    /// Can only be set before the WebView is created.<br />
     /// Windows only.
     /// </remarks>
     public bool GrantPermissions {

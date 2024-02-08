@@ -6,6 +6,7 @@
 namespace Gluino {
 
 struct WebViewOptions {
+    char* UserDataPath;
     char* StartUrl;
     char* StartContent;
     bool ContextMenuEnabled;

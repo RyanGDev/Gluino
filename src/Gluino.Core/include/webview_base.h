@@ -12,6 +12,7 @@ namespace Gluino {
 class WebViewBase {
 public:
     explicit WebViewBase(const WebViewOptions* options, const WebViewEvents* events) {
+        _userDataPath = CharToCppStr(options->UserDataPath);
         _startUrl = CharToCppStr(options->StartUrl);
         _startContent = CharToCppStr(options->StartContent);
         _userAgent = CharToCppStr(options->UserAgent);
@@ -30,6 +31,8 @@ public:
     virtual void PostWebMessage(cstr message) = 0;
     virtual void InjectScript(cstr script, bool onDocumentCreated) = 0;
 
+    virtual ccstr GetUserDataPath() = 0;
+
     virtual bool GetContextMenuEnabled() = 0;
     virtual void SetContextMenuEnabled(bool enabled) = 0;
 
@@ -40,6 +43,7 @@ public:
     virtual void SetUserAgent(cstr userAgent) = 0;
 
 protected:
+    cppstr _userDataPath;
     cppstr _startUrl;
     cppstr _startContent;
     cppstr _userAgent;

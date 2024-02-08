@@ -78,6 +78,8 @@ extern "C" {
     EXPORT void Gluino_WebView_PostWebMessage(WebView* webView, const cstr message) { webView->PostWebMessage(message); }
     EXPORT void Gluino_WebView_InjectScript(WebView* webView, const cstr script, const bool onDocumentCreated) { webView->InjectScript(script, onDocumentCreated); }
 
+    EXPORT ccstr Gluino_WebView_GetUserDataPath(WebView* webView) { return webView->GetUserDataPath(); }
+
     EXPORT bool Gluino_WebView_GetGrantPermissions(const WebView* webView) { return webView->GetGrantPermissions(); }
 
     EXPORT bool Gluino_WebView_GetContextMenuEnabled(WebView* webView) { return webView->GetContextMenuEnabled(); }
