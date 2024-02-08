@@ -1,15 +1,18 @@
 #include "window_frame.h"
 #include "app.h"
 
-#include <map>
+#include <unordered_map>
 
 using namespace Gluino;
 
-WNDPROC OriginalWndProc = nullptr;
+struct WindowInfo {
+    WindowEdge edge;
+    HWND hWndWindow;
+    WindowFrame* frame;
+};
 
-std::map<HWND, WindowEdge> StaticHandleToEdge;
-std::map<HWND, HWND> StaticHandleToWindowHandle;
-std::map<HWND, WindowFrame*> StaticHandleToFrame;
+WNDPROC OriginalWndProc = nullptr;
+std::unordered_map<HWND, WindowInfo> StaticHandleToInfo;
 
 WindowFrame::WindowFrame(const HWND hWndWindow) {
     _hWndWindow = hWndWindow;
@@ -40,9 +43,8 @@ void WindowFrame::Attach() {
 
         _hWndEdges.push_back(hWnd);
 
-        StaticHandleToEdge[hWnd] = edge;
-        StaticHandleToWindowHandle[hWnd] = _hWndWindow;
-        StaticHandleToFrame[hWnd] = this;
+        const WindowInfo info = {edge, _hWndWindow, this};
+        StaticHandleToInfo[hWnd] = info;
         OriginalWndProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndFrameProc);
     }
     _isAttached = true;
@@ -51,9 +53,7 @@ void WindowFrame::Attach() {
 void WindowFrame::Detach() {
     if (!_isAttached) return;
     for (const auto hWnd : _hWndEdges) {
-        StaticHandleToEdge.erase(hWnd);
-        StaticHandleToWindowHandle.erase(hWnd);
-        StaticHandleToFrame.erase(hWnd);
+        StaticHandleToInfo.erase(hWnd);
 
         DestroyWindow(hWnd);
     }
@@ -62,8 +62,8 @@ void WindowFrame::Detach() {
 
 void WindowFrame::Update() const {
     if (!_isAttached) return;
-    for (const auto& [hWnd, edge] : StaticHandleToEdge) {
-        auto [x, y, width, height] = GetEdgeRect(edge);
+    for (const auto& [hWnd, info] : StaticHandleToInfo) {
+        auto [x, y, width, height] = GetEdgeRect(info.edge);
         SetWindowPos(hWnd, nullptr, x, y, width, height, SWP_NOZORDER);
     }
 }
@@ -101,6 +101,8 @@ Rect WindowFrame::GetEdgeRect(const WindowEdge edge) const {
 }
 
 LRESULT WindowFrame::WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPARAM wParam, LPARAM lParam) const {
+    static std::unordered_map<WindowEdge, HCURSOR> edgeToCursor;
+
     switch (msg) {
         case WM_LBUTTONDOWN: {
             int ht = HTCLIENT;
@@ -119,27 +121,35 @@ LRESULT WindowFrame::WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPAR
             break;
         }
         case WM_SETCURSOR: {
-            LPWSTR cursor = nullptr;
-            switch (edge) {
-                case WindowEdge::Top:
-                case WindowEdge::Bottom:
-                    cursor = IDC_SIZENS;
-                    break;
-                case WindowEdge::Left:
-                case WindowEdge::Right:
-                    cursor = IDC_SIZEWE;
-                    break;
-                case WindowEdge::TopLeft:
-                case WindowEdge::BottomRight:
-                    cursor = IDC_SIZENWSE;
-                    break;
-                case WindowEdge::TopRight:
-                case WindowEdge::BottomLeft:
-                    cursor = IDC_SIZENESW;
-                    break;
+            HCURSOR hCursor;
+
+            if (edgeToCursor.contains(edge)) {
+                hCursor = edgeToCursor[edge];
+            } else {
+                LPWSTR cursor = nullptr;
+                switch (edge) {
+                    case WindowEdge::Top:
+                    case WindowEdge::Bottom:
+                        cursor = IDC_SIZENS;
+                        break;
+                    case WindowEdge::Left:
+                    case WindowEdge::Right:
+                        cursor = IDC_SIZEWE;
+                        break;
+                    case WindowEdge::TopLeft:
+                    case WindowEdge::BottomRight:
+                        cursor = IDC_SIZENWSE;
+                        break;
+                    case WindowEdge::TopRight:
+                    case WindowEdge::BottomLeft:
+                        cursor = IDC_SIZENESW;
+                        break;
+                }
+
+                hCursor = LoadCursor(nullptr, cursor);
+                edgeToCursor[edge] = hCursor;
             }
 
-            const HCURSOR hCursor = LoadCursor(nullptr, cursor);
             SetCursor(hCursor);
             return TRUE;
         }
@@ -150,15 +160,11 @@ LRESULT WindowFrame::WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPAR
 }
 
 LRESULT WindowFrame::WndFrameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    if (StaticHandleToWindowHandle.contains(hWnd)) {
-        if (StaticHandleToFrame.contains(hWnd)) {			
-            const auto frame = StaticHandleToFrame[hWnd];
+    static std::unordered_map<WindowEdge, HCURSOR> edgeToCursor;
 
-            if (StaticHandleToEdge.contains(hWnd)) {
-                const auto edge = StaticHandleToEdge[hWnd];
-                return frame->WndFrameEdgeProc(hWnd, edge, msg, wParam, lParam);
-            }			
-        }
+    if (StaticHandleToInfo.contains(hWnd)) {
+        const auto& [edge, _, frame] = StaticHandleToInfo[hWnd];
+        return frame->WndFrameEdgeProc(hWnd, edge, msg, wParam, lParam);
     }
 
     return CallWindowProc(OriginalWndProc, hWnd, msg, wParam, lParam);
