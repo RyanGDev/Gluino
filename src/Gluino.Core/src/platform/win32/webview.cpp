@@ -46,10 +46,16 @@ void WebView::Attach(WindowBase* window) {
     _window = (Window*)window;
     _hWndWnd = _window->GetHandle();
 
-    wchar_t dataPath[MAX_PATH];
-    SHGetSpecialFolderPath(nullptr, dataPath, CSIDL_LOCAL_APPDATA, FALSE);
+    auto dataPath = _userDataPath;
+    if (dataPath.empty()) {
+        if (wchar_t specialFolderPath[MAX_PATH];
+            SHGetSpecialFolderPath(nullptr, specialFolderPath, CSIDL_LOCAL_APPDATA, FALSE)) {
+            dataPath = specialFolderPath;
+            dataPath += L"\\Gluino";
+        }
+    }
 
-    CreateCoreWebView2EnvironmentWithOptions(nullptr, dataPath, nullptr,
+    CreateCoreWebView2EnvironmentWithOptions(nullptr, dataPath.c_str(), nullptr,
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(this,
             &WebView::OnWebView2CreateEnvironmentCompleted).Get());
 }
@@ -75,6 +81,10 @@ void WebView::InjectScript(cstr script, bool onDocumentCreated) {
         _webview->AddScriptToExecuteOnDocumentCreated(script, nullptr);
     else
         _webview->ExecuteScript(script, nullptr);
+}
+
+ccstr WebView::GetUserDataPath() {
+    return _userDataPath.c_str();
 }
 
 bool WebView::GetGrantPermissions() const {

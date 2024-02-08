@@ -30,6 +30,8 @@ public:
     void PostWebMessage(cstr message) override;
     void InjectScript(cstr script, bool onDocumentCreated) override;
 
+    ccstr GetUserDataPath() override;
+
     bool GetGrantPermissions() const;
 
     bool GetContextMenuEnabled() override;
