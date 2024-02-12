@@ -28,6 +28,7 @@ typedef wchar_t* cstr;
 typedef const wchar_t* ccstr;
 typedef std::wstring cppstr;
 typedef std::wstringstream cppstrstream;
+typedef HWND nwnd;
 
 template<typename T>
 using ptr = std::unique_ptr<T>;
@@ -40,8 +41,10 @@ constexpr auto newptr(Args&&... args) {
 #define EXPORT
 
 typedef char* cstr;
+typedef const char* ccstr;
 typedef std::string cppstr;
 typedef std::stringstream cppstrstream;
+typedef void* nwnd;
 #endif
 
 enum class WindowBorderStyle {
@@ -82,6 +85,43 @@ enum class WindowTheme {
     Dark
 };
 
+enum class FileDialogType {
+    OpenFile,
+    OpenFolder,
+    SaveFile
+};
+
+enum class DialogResult {
+    Error = -1,
+    None,
+    OK,
+    Cancel,
+    Abort,
+    Retry,
+    Ignore,
+    Yes,
+    No,
+    TryAgain,
+    Continue
+};
+
+enum class MessageBoxButtons {
+    OK,
+    OKCancel,
+    AbortRetryIgnore,
+    YesNoCancel,
+    YesNo,
+    RetryCancel,
+    CancelTryContinue
+};
+
+enum class MessageBoxIcon {
+    None,
+    Error,
+    Warning,
+    Information
+};
+
 struct Size {
     int width;
     int height;
@@ -100,16 +140,21 @@ struct Rect {
 };
 
 struct WebResourceRequest {
-    char* Url;
-    char* Method;
+    cstr Url;
+    cstr Method;
 };
 
 struct WebResourceResponse {
-    char* ContentType;
+    cstr ContentType;
     void* Content;
     int ContentLength;
     int StatusCode;
-    char* ReasonPhrase;
+    cstr ReasonPhrase;
+};
+
+struct FileDialogFilter {
+    cstr Name;
+    cstr Spec;
 };
 
 typedef void (*Delegate)();

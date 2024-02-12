@@ -8,7 +8,7 @@ Similar to other frameworks out there like [Tauri](https://github.com/tauri-apps
 - [x] Support for Windows
   - [x] Dark/light mode support (Windows 10/11)
   - [x] Resizable chromeless window
-  - [ ] System dialogs
+  - [x] System dialogs
 - [ ] Support for macOS
   - [ ] Dark/light mode support
   - [ ] System dialogs
@@ -16,4 +16,3 @@ Similar to other frameworks out there like [Tauri](https://github.com/tauri-apps
 - [ ] Bindings to JavaScript functions in C#
 
 **Linux support is not currently planned (but may be in the future)*
-

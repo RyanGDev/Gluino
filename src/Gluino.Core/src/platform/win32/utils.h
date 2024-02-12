@@ -3,6 +3,7 @@
 #ifndef GLUINO_UTILS_H
 #define GLUINO_UTILS_H
 
+#include <string>
 #include <Windows.h>
 
 namespace Gluino {
@@ -102,7 +103,7 @@ public:
     ~VisualStyleContext();
 
 private:
-    static HANDLE CreateActivationContext();
+    HMODULE _handle;
     ULONG_PTR _cookie = 0;
 };
 

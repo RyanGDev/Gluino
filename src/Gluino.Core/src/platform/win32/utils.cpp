@@ -238,8 +238,20 @@ void Gluino::ApplyWindowStyle(const HWND hWnd, const bool darkMode) noexcept {
 }
 
 VisualStyleContext::VisualStyleContext()
+    : _handle(LoadLibraryA("comdlg32.dll"))
 {
-    static HANDLE hctx = CreateActivationContext();
+    const UINT len = GetSystemDirectoryA(nullptr, 0);
+    std::string sysDir(len, '\0');
+    GetSystemDirectoryA(sysDir.data(), len);
+
+    const ACTCTXA actCtx =
+    {
+        sizeof(actCtx),
+        ACTCTX_FLAG_RESOURCE_NAME_VALID | ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID,
+        "shell32.dll", 0, 0, sysDir.c_str(), (LPCSTR)124, nullptr, nullptr,
+    };
+
+    static HANDLE hctx = CreateActCtxA(&actCtx);
 
     if (hctx != INVALID_HANDLE_VALUE)
         ActivateActCtx(hctx, &_cookie);
@@ -247,22 +259,8 @@ VisualStyleContext::VisualStyleContext()
 
 VisualStyleContext::~VisualStyleContext()
 {
+    if (_handle)
+        FreeLibrary(_handle);
+
     DeactivateActCtx(0, _cookie);
-}
-
-HANDLE VisualStyleContext::CreateActivationContext()
-{
-    const auto len = GetSystemDirectoryA(nullptr, 0);
-    const auto sysDir = new char[len];
-    GetSystemDirectoryA(sysDir, len);
-
-    const ACTCTXA actCtx = {
-        sizeof(actCtx),
-        ACTCTX_FLAG_RESOURCE_NAME_VALID | ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID,
-        "shell32.dll", 0, 0, sysDir, (LPCSTR)124, nullptr, nullptr,
-    };
-
-    delete[] sysDir;
-
-    return CreateActCtxA(&actCtx);
 }
