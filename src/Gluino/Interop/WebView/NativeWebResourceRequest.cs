@@ -2,9 +2,9 @@
 
 namespace Gluino.Interop;
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 internal struct NativeWebResourceRequest
 {
-    [MarshalAs(UnmanagedType.LPStr)] public string Url;
-    [MarshalAs(UnmanagedType.LPStr)] public string Method;
+    public string Url;
+    public string Method;
 }

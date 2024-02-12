@@ -251,11 +251,9 @@ HRESULT WebView::OnWebView2WebResourceRequested(ICoreWebView2* sender, ICoreWebV
     wil::unique_cotaskmem_string reqMethod;
     request->get_Method(&reqMethod);
 
-    const ptr<char[]> reqUriStr(CStrNarrow(reqUri.get()));
-    const ptr<char[]> reqMethodStr(CStrNarrow(reqMethod.get()));
     const WebResourceRequest req{
-        reqUriStr.get(),
-        reqMethodStr.get(),
+        reqUri.get(),
+        reqMethod.get(),
     };
     WebResourceResponse res;
     _onResourceRequested(req, &res);
@@ -263,8 +261,8 @@ HRESULT WebView::OnWebView2WebResourceRequested(ICoreWebView2* sender, ICoreWebV
     const wil::unique_cotaskmem content(res.Content);
 
     if (content != nullptr) {
-        const auto reasonPhrase = CharToCppStr(res.ReasonPhrase);
-        const auto contentType = CharToCppStr(res.ContentType);
+        const auto reasonPhrase = cppstr(res.ReasonPhrase);
+        const auto contentType = cppstr(res.ContentType);
 
         IStream* stream = SHCreateMemStream((BYTE*)content.get(), res.ContentLength);
         wil::com_ptr<ICoreWebView2WebResourceResponse> response;

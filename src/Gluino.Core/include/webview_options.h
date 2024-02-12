@@ -3,15 +3,17 @@
 #ifndef GLUINO_WEBVIEW_OPTIONS_H
 #define GLUINO_WEBVIEW_OPTIONS_H
 
+#include "common.h"
+
 namespace Gluino {
 
 struct WebViewOptions {
-    char* UserDataPath;
-    char* StartUrl;
-    char* StartContent;
+    cstr UserDataPath;
+    cstr StartUrl;
+    cstr StartContent;
     bool ContextMenuEnabled;
     bool DevToolsEnabled;
-    char* UserAgent;
+    cstr UserAgent;
     bool GrantPermissions;
 };
 

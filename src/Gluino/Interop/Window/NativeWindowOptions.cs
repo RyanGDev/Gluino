@@ -2,11 +2,11 @@
 
 namespace Gluino.Interop;
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 internal struct NativeWindowOptions
 {
     [MarshalAs(UnmanagedType.I1)] public bool IsMain;
-    [MarshalAs(UnmanagedType.LPStr)] public string Title;
+    public string Title;
     public nint Icon;
     [MarshalAs(UnmanagedType.I4)] public int IconSize;
     public WindowBorderStyle BorderStyle;

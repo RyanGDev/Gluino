@@ -12,10 +12,10 @@ namespace Gluino {
 class WebViewBase {
 public:
     explicit WebViewBase(const WebViewOptions* options, const WebViewEvents* events) {
-        _userDataPath = CharToCppStr(options->UserDataPath);
-        _startUrl = CharToCppStr(options->StartUrl);
-        _startContent = CharToCppStr(options->StartContent);
-        _userAgent = CharToCppStr(options->UserAgent);
+        _userDataPath = options->UserDataPath ? options->UserDataPath : L"";
+        _startUrl = options->StartUrl ? options->StartUrl : L"";
+        _startContent = options->StartContent ? options->StartContent : L"";
+        _userAgent = options->UserAgent ? options->UserAgent : L"";
 
         _onCreated = (Delegate)events->OnCreated;
         _onNavigationStart = (StringDelegate)events->OnNavigationStart;

@@ -9,7 +9,7 @@ namespace Gluino {
 
 struct WindowOptions {
     bool IsMain;
-    char* Title;
+    cstr Title;
     void* Icon;
     int IconSize;
     WindowBorderStyle BorderStyle;
