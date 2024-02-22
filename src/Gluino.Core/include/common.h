@@ -23,6 +23,8 @@ namespace Gluino {
 
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
+#define EMPTY_STRING L""
+#define DEFAULT_WINDOW_TITLE L"Window"
 
 typedef wchar_t* cstr;
 typedef const wchar_t* ccstr;
@@ -39,6 +41,8 @@ constexpr auto newptr(Args&&... args) {
 }
 #else
 #define EXPORT
+#define EMPTY_STRING ""
+#define DEFAULT_WINDOW_TITLE "Window"
 
 typedef char* cstr;
 typedef const char* ccstr;
@@ -164,7 +168,6 @@ typedef void (*PointDelegate)(Point);
 typedef void (*StringDelegate)(cstr);
 typedef void (*IntDelegate)(int);
 typedef void (*WebResourceDelegate)(WebResourceRequest, WebResourceResponse*);
-typedef void(__stdcall* ExecuteScriptCallback)(bool success, cstr result);
 
 inline cstr CStrCopy(cstr source) {
     cstr result;
