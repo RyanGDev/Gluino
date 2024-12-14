@@ -11,12 +11,12 @@ public class FileDialogFilter
     /// Initializes a new instance of the <see cref="FileDialogFilter"/> class.
     /// </summary>
     /// <param name="name">The name of the filter.</param>
-    /// <param name="extensions">The extensions to filter by.</param>
-    public FileDialogFilter(string name, params string[] extensions)
+    /// <param name="patterns">The patterns to filter by.</param>
+    public FileDialogFilter(string name, params string[] patterns)
     {
         Name = name;
-        foreach (var ext in extensions)
-            Extensions.Add(ext);
+        foreach (var ext in patterns)
+            Patterns.Add(ext);
     }
 
     /// <summary>
@@ -25,15 +25,15 @@ public class FileDialogFilter
     public string Name { get; set; }
 
     /// <summary>
-    /// Gets a collection of the extensions for the filter.
+    /// Gets a collection of patterns for the filter.
     /// </summary>
-    public FileDialogFilterExtensionCollection Extensions { get; } = [];
+    public FileDialogFilterPatternCollection Patterns { get; } = [];
 
     internal NativeFileDialogFilter ToNativeFilter()
     {
         var filter = new NativeFileDialogFilter {
             Name = Name,
-            Spec = string.Join(";", Extensions)
+            Spec = string.Join(";", Patterns)
         };
 
         return filter;
