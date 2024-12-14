@@ -1,21 +1,10 @@
 #include "window_frame.h"
 #include "app.h"
 
-#include <unordered_map>
-
 using namespace Gluino;
 
-struct WindowInfo {
-    WindowEdge edge;
-    HWND hWndWindow;
-    WindowFrame* frame;
-};
-
-WNDPROC OriginalWndProc = nullptr;
-std::unordered_map<HWND, WindowInfo> StaticHandleToInfo;
-
-WindowFrame::WindowFrame(const HWND hWndWindow) {
-    _hWndWindow = hWndWindow;
+WindowFrame::WindowFrame(const nwnd parentWindow) {
+    _parentWindow = parentWindow;
 }
 
 WindowFrame::~WindowFrame() {
@@ -36,16 +25,18 @@ void WindowFrame::Attach() {
             y,
             width,
             height,
-            _hWndWindow,
+            _parentWindow,
             nullptr,
             App::GetHInstance(),
             nullptr);
 
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+
         _hWndEdges.push_back(hWnd);
 
-        const WindowInfo info = {edge, _hWndWindow, this};
-        StaticHandleToInfo[hWnd] = info;
-        OriginalWndProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndFrameProc);
+        const WindowInfo info = {edge, _parentWindow, this};
+        _infos[hWnd] = info;
+        _oldProcs[hWnd] = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndFrameProc);
     }
     _isAttached = true;
 }
@@ -53,7 +44,7 @@ void WindowFrame::Attach() {
 void WindowFrame::Detach() {
     if (!_isAttached) return;
     for (const auto hWnd : _hWndEdges) {
-        StaticHandleToInfo.erase(hWnd);
+        _infos.erase(hWnd);
 
         DestroyWindow(hWnd);
     }
@@ -62,7 +53,7 @@ void WindowFrame::Detach() {
 
 void WindowFrame::Update() const {
     if (!_isAttached) return;
-    for (const auto& [hWnd, info] : StaticHandleToInfo) {
+    for (const auto& [hWnd, info] : _infos) {
         auto [x, y, width, height] = GetEdgeRect(info.edge);
         SetWindowPos(hWnd, nullptr, x, y, width, height, SWP_NOZORDER);
     }
@@ -70,7 +61,7 @@ void WindowFrame::Update() const {
 
 Rect WindowFrame::GetEdgeRect(const WindowEdge edge) const {
     RECT wndRect;
-    GetWindowRect(_hWndWindow, &wndRect);
+    GetWindowRect(_parentWindow, &wndRect);
 
     const auto width = wndRect.right - wndRect.left;
     const auto height = wndRect.bottom - wndRect.top;
@@ -100,7 +91,7 @@ Rect WindowFrame::GetEdgeRect(const WindowEdge edge) const {
     return { 0, 0, 0, 0 };
 }
 
-LRESULT WindowFrame::WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPARAM wParam, LPARAM lParam) const {
+LRESULT WindowFrame::WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPARAM wParam, LPARAM lParam) {
     static std::unordered_map<WindowEdge, HCURSOR> edgeToCursor;
 
     switch (msg) {
@@ -117,7 +108,7 @@ LRESULT WindowFrame::WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPAR
                 case WindowEdge::BottomRight: ht = HTBOTTOMRIGHT; break;
             }
 
-            SendMessage(_hWndWindow, WM_NCLBUTTONDOWN, ht, 0);
+            SendMessage(_parentWindow, WM_NCLBUTTONDOWN, ht, 0);
             break;
         }
         case WM_SETCURSOR: {
@@ -156,17 +147,16 @@ LRESULT WindowFrame::WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPAR
         default: break;
     }
 
-    return CallWindowProc(OriginalWndProc, hWnd, msg, wParam, lParam);
+    return CallWindowProc(_oldProcs[hWnd], hWnd, msg, wParam, lParam);
 }
 
 LRESULT WindowFrame::WndFrameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    static std::unordered_map<WindowEdge, HCURSOR> edgeToCursor;
+    const auto frame = reinterpret_cast<WindowFrame*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
-    if (StaticHandleToInfo.contains(hWnd)) {
-        const auto& [edge, _, frame] = StaticHandleToInfo[hWnd];
+    if (frame && frame->_infos.contains(hWnd)) {
+        const auto& [edge, _, _frame] = frame->_infos[hWnd];
         return frame->WndFrameEdgeProc(hWnd, edge, msg, wParam, lParam);
     }
 
-    return CallWindowProc(OriginalWndProc, hWnd, msg, wParam, lParam);
+    return CallWindowProc(frame->_oldProcs[hWnd], hWnd, msg, wParam, lParam);
 }
-

@@ -7,12 +7,21 @@
 
 #include <Windows.h>
 #include <vector>
+#include <unordered_map>
 
 namespace Gluino {
 
+class WindowFrame;
+
+struct WindowInfo {
+    WindowEdge edge;
+    nwnd parentWindow;
+    WindowFrame* frame;
+};
+
 class WindowFrame {
 public:
-    explicit WindowFrame(HWND hWndWindow);
+    explicit WindowFrame(nwnd parentWindow);
     ~WindowFrame();
 
     void Attach();
@@ -20,13 +29,16 @@ public:
     void Update() const;
 
 private:
-    HWND _hWndWindow;
+    nwnd _parentWindow;
     std::vector<HWND> _hWndEdges;
     bool _isAttached = false;
 
+    std::unordered_map<HWND, WNDPROC> _oldProcs;
+    std::unordered_map<HWND, WindowInfo> _infos;
+
     Rect GetEdgeRect(WindowEdge edge) const;
 
-    LRESULT CALLBACK WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPARAM wParam, LPARAM lParam) const;
+    LRESULT CALLBACK WndFrameEdgeProc(HWND hWnd, WindowEdge edge, UINT msg, WPARAM wParam, LPARAM lParam);
     static LRESULT CALLBACK WndFrameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };
 
