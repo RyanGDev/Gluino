@@ -182,7 +182,7 @@ void Window::Center() {
     const auto wndHeight = wndRect.bottom - wndRect.top;
     const auto wndX = (screenWidth - wndWidth) / 2;
     const auto wndY = (screenHeight - wndHeight) / 2;
-    Point loc = { wndX, wndY };
+    Point loc = { .x= wndX, .y= wndY };
 
     SetLocation(loc);
 }
@@ -206,10 +206,10 @@ void Window::GetBounds(Rect* bounds) {
     GetWindowRect(_hWnd, &rect);
 
     *bounds = {
-        rect.right - rect.left,
-        rect.bottom - rect.top,
-        rect.left,
-        rect.top
+        .x= rect.right - rect.left,
+        .y= rect.bottom - rect.top,
+        .width= rect.left,
+        .height= rect.top
     };
 }
 
@@ -319,8 +319,8 @@ void Window::SetMinimumSize(Size& size) {
 
     const auto [width, height] = GetSize();
     if (Size newSize = {
-        std::max(width, _minSize.width),
-        std::max(height, _minSize.height)
+        .width= std::max(width, _minSize.width),
+        .height= std::max(height, _minSize.height)
         }; newSize.width != width || newSize.height != height) {
         SetSize(newSize);
     }
@@ -335,8 +335,8 @@ void Window::SetMaximumSize(Size& size) {
 
     const auto [width, height] = GetSize();
     if (Size newSize = {
-            std::min(width, _maxSize.width),
-            std::min(height, _maxSize.height)
+            .width= std::min(width, _maxSize.width),
+            .height= std::min(height, _maxSize.height)
         }; newSize.width != width || newSize.height != height) {
         SetSize(newSize);
     }
@@ -345,7 +345,7 @@ void Window::SetMaximumSize(Size& size) {
 Size Window::GetSize() {
     RECT rect;
     GetWindowRect(_hWnd, &rect);
-    return { rect.right - rect.left, rect.bottom - rect.top };
+    return { .width= rect.right - rect.left, .height= rect.bottom - rect.top };
 }
 
 void Window::SetSize(Size& size) {
@@ -355,7 +355,7 @@ void Window::SetSize(Size& size) {
 Point Window::GetLocation() {
     RECT rect;
     GetWindowRect(_hWnd, &rect);
-    return { rect.left, rect.top };
+    return { .x= rect.left, .y= rect.top };
 }
 
 void Window::SetLocation(Point& location) {
