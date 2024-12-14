@@ -30,6 +30,7 @@ public:
     virtual void NativateToString(cstr content) = 0;
     virtual void PostWebMessage(cstr message) = 0;
     virtual void InjectScript(cstr script, bool onDocumentCreated) = 0;
+    virtual void ClearAutoFill() = 0;
 
     virtual ccstr GetUserDataPath() = 0;
 

@@ -1,5 +1,6 @@
 #include "webview.h"
 
+#include <iostream>
 #include <shlobj.h>
 #include <Shlwapi.h>
 #include <wrl.h>
@@ -83,6 +84,25 @@ void WebView::InjectScript(cstr script, bool onDocumentCreated) {
         _webview->ExecuteScript(script, nullptr);
 }
 
+void WebView::ClearAutoFill() {
+    if (_webview15 == nullptr) return;
+
+    wil::com_ptr<ICoreWebView2Profile> profile;
+    _webview15->get_Profile(&profile);
+
+    const auto profile2 = profile.query<ICoreWebView2Profile2>();
+    if (profile2 == nullptr) return;
+
+    constexpr auto dataKinds =
+        COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL |
+        COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE;
+
+    profile2->ClearBrowsingData(dataKinds, Callback<ICoreWebView2ClearBrowsingDataCompletedHandler>(
+        [this](HRESULT) -> HRESULT {
+        return S_OK;
+    }).Get());
+}
+
 ccstr WebView::GetUserDataPath() {
     return _userDataPath.c_str();
 }
@@ -143,6 +163,9 @@ HRESULT WebView::OnWebView2CreateControllerCompleted(const HRESULT result, ICore
 
     _webviewController2 = _webviewController.query<ICoreWebView2Controller2>();
     _webviewController2->put_DefaultBackgroundColor({ 0, 0, 0, 0 });
+
+    _webview11 = _webview.query<ICoreWebView2_11>();
+    _webview15 = _webview.query<ICoreWebView2_15>();
 
     _webview->get_Settings(&_webviewSettings);
     _webviewSettings->put_AreHostObjectsAllowed(TRUE);
@@ -209,6 +232,11 @@ HRESULT WebView::OnWebView2CreateControllerCompleted(const HRESULT result, ICore
     _webview->add_PermissionRequested(
         Callback<ICoreWebView2PermissionRequestedEventHandler>(this,
             &WebView::OnWebView2PermissionRequested).Get(), &permissionRequestedToken);
+
+    EventRegistrationToken contextMenuRequestedToken;
+    _webview11->add_ContextMenuRequested(
+        Callback<ICoreWebView2ContextMenuRequestedEventHandler>(
+            &WebView::OnWebView2ContextMenuRequested).Get(), &contextMenuRequestedToken);
 
     if (!_startUrl.empty()) 
         _webview->Navigate(_startUrl.c_str());
@@ -285,5 +313,39 @@ HRESULT WebView::OnWebView2WebResourceRequested(ICoreWebView2* sender, ICoreWebV
 HRESULT WebView::OnWebView2PermissionRequested(ICoreWebView2* sender, ICoreWebView2PermissionRequestedEventArgs* args) {
     if (_grantPermissions)
         args->put_State(COREWEBVIEW2_PERMISSION_STATE_ALLOW);
+    return S_OK;
+}
+
+HRESULT WebView::OnWebView2ContextMenuRequested(ICoreWebView2* sender, ICoreWebView2ContextMenuRequestedEventArgs* args) {
+    const wil::com_ptr eventArgs = args;
+    wil::com_ptr<ICoreWebView2ContextMenuItemCollection> menuItems;
+    eventArgs->get_MenuItems(&menuItems);
+
+    UINT32 menuItemsCount;
+    menuItems->get_Count(&menuItemsCount);
+
+    wil::com_ptr<ICoreWebView2ContextMenuItem> menuItem;
+    for (UINT32 i = 0; i < menuItemsCount; i++) {
+        menuItems->GetValueAtIndex(i, &menuItem);
+
+        wil::unique_cotaskmem_string name;
+        menuItem->get_Name(&name);
+
+        if (wcscmp(name.get(), L"back") == 0 ||
+            wcscmp(name.get(), L"forward") == 0 ||
+            wcscmp(name.get(), L"reload") == 0 ||
+            wcscmp(name.get(), L"other") == 0 ||
+            wcscmp(name.get(), L"saveAs") == 0 ||
+            wcscmp(name.get(), L"print") == 0 ||
+            wcscmp(name.get(), L"share") == 0 ||
+            wcscmp(name.get(), L"webCapture") == 0 ||
+            wcscmp(name.get(), L"emoji") == 0 ||
+            wcscmp(name.get(), L"copyLinkToHighlight") == 0) {
+            menuItems->RemoveValueAtIndex(i);
+            --i;
+            --menuItemsCount;
+        }
+    }
+
     return S_OK;
 }

@@ -161,6 +161,11 @@ public partial class WebView
     /// </summary>
     /// <param name="script">The JavaScript code to inject.</param>
     public void InjectScriptOnDocumentCreated(string script) => SafeInvoke(() => NativeWebView.InjectScript(InstancePtr, script, true));
+
+    /// <summary>
+    /// Clears the WebView's autofill data.
+    /// </summary>
+    public void ClearAutoFill() => SafeInvoke(() => NativeWebView.ClearAutoFill(InstancePtr));
     
     private void Invoke(Action action) => _window.Invoke(action);
     private void SafeInvoke(Action action) => _window.SafeInvoke(action);

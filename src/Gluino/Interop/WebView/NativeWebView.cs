@@ -10,6 +10,7 @@ internal partial class NativeWebView
     [LibImport("Gluino_WebView_NativateToString")] public static partial void NativateToString(nint webView, string content);
     [LibImport("Gluino_WebView_PostWebMessage")] public static partial void PostWebMessage(nint webView, string message);
     [LibImport("Gluino_WebView_InjectScript")] public static partial void InjectScript(nint webView, string script, bool onDocumentCreated);
+    [LibImport("Gluino_WebView_ClearAutoFill")] public static partial void ClearAutoFill(nint webView);
 
     [LibImport("Gluino_WebView_GetUserDataPath", Managed = true, Property = PG, Option = "UserDataPath", ReturnType = typeof(string))]
     public static partial nint GetUserDataPath(nint webView);

@@ -29,6 +29,7 @@ public:
     void NativateToString(cstr content) override;
     void PostWebMessage(cstr message) override;
     void InjectScript(cstr script, bool onDocumentCreated) override;
+    void ClearAutoFill() override;
 
     ccstr GetUserDataPath() override;
 
@@ -52,6 +53,8 @@ private:
     bool _grantPermissions = false;
 
     wil::com_ptr<ICoreWebView2>            _webview;
+    wil::com_ptr<ICoreWebView2_11>         _webview11;
+    wil::com_ptr<ICoreWebView2_15>         _webview15;
     wil::com_ptr<ICoreWebView2Environment> _webviewEnv;
     wil::com_ptr<ICoreWebView2Controller>  _webviewController;
     wil::com_ptr<ICoreWebView2Controller2> _webviewController2;
@@ -65,6 +68,7 @@ private:
     HRESULT OnWebView2WebMessageReceived(ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args);
     HRESULT OnWebView2WebResourceRequested(ICoreWebView2* sender, ICoreWebView2WebResourceRequestedEventArgs* args);
     HRESULT OnWebView2PermissionRequested(ICoreWebView2* sender, ICoreWebView2PermissionRequestedEventArgs* args);
+    static HRESULT OnWebView2ContextMenuRequested(ICoreWebView2* sender, ICoreWebView2ContextMenuRequestedEventArgs* args);
 };
 
 }
