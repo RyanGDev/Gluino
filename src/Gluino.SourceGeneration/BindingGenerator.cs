@@ -308,8 +308,42 @@ public static class Extensions
         if (namedTypeSymbol.IsPrimitive())
             return;
 
-        if (namedTypeSymbol.IsGenericNamedTypeSymbol(1, out _)) {
-            var type = namedTypeSymbol.TypeArguments[0];
+        // if (namedTypeSymbol.IsGenericNamedTypeSymbol(1, out _)) {
+        //     var type = namedTypeSymbol.TypeArguments[0];
+        //     if (list.Contains(type, SymbolEqualityComparer.Default))
+        //         return;
+        //     type.GetNonPrimitives(ref list);
+        //     return;
+        // }
+
+        if (namedTypeSymbol.IsIEnumerable(out var nts)) {
+            var type = nts.TypeArguments[0];
+            if (list.Contains(type, SymbolEqualityComparer.Default))
+                return;
+            type.GetNonPrimitives(ref list);
+            return;
+        }
+
+        if (namedTypeSymbol.IsTask(out nts)) {
+            var type = nts.TypeArguments[0];
+            if (list.Contains(type, SymbolEqualityComparer.Default))
+                return;
+            type.GetNonPrimitives(ref list);
+            return;
+        }
+
+        if (namedTypeSymbol.IsDictionary(out nts)) {
+            var keyType = nts.TypeArguments[0];
+            var valueType = nts.TypeArguments[1];
+            if (!list.Contains(keyType, SymbolEqualityComparer.Default))
+                keyType.GetNonPrimitives(ref list);
+            if (!list.Contains(valueType, SymbolEqualityComparer.Default))
+                valueType.GetNonPrimitives(ref list);
+            return;
+        }
+
+        if (namedTypeSymbol.IsArray(out var ats)) {
+            var type = ats.ElementType;
             if (list.Contains(type, SymbolEqualityComparer.Default))
                 return;
             type.GetNonPrimitives(ref list);
@@ -345,8 +379,16 @@ public static class Extensions
     public static string ToTypeScript(this ITypeSymbol typeSymbol)
     {
         if (!typeSymbol.IsPrimitive()) {
+            if (typeSymbol.IsArray(out var ats)) {
+                return $"{ats.ElementType.ToTypeScript()}[]";
+            }
+
             if (typeSymbol.IsIEnumerable(out var nts)) {
                 return $"{nts.TypeArguments[0].ToTypeScript()}[]";
+            }
+
+            if (typeSymbol.IsDictionary(out nts)) {
+                return $"{{ [key: {nts.TypeArguments[0].ToTypeScript()}]: {nts.TypeArguments[1].ToTypeScript()} }}";
             }
 
             if (typeSymbol.IsTask(out nts)) {
@@ -356,9 +398,9 @@ public static class Extensions
             return typeSymbol.Name;
         }
 
-        if (typeSymbol.TypeKind == TypeKind.Array && typeSymbol is IArrayTypeSymbol arrayTypeSymbol) {
-            return $"{arrayTypeSymbol.ElementType.ToTypeScript()}[]";
-        }
+        // if (typeSymbol.TypeKind == TypeKind.Array && typeSymbol is IArrayTypeSymbol arrayTypeSymbol) {
+        //     return $"{arrayTypeSymbol.ElementType.ToTypeScript()}[]";
+        // }
 
         if (typeSymbol.TypeKind is TypeKind.Class or TypeKind.Struct) {
             switch (typeSymbol.SpecialType) {
@@ -406,6 +448,25 @@ public static class Extensions
         return namedTypeSymbol.AllInterfaces
             .Any(i =>
                 i.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>");
+    }
+
+    public static bool IsDictionary(this ITypeSymbol typeSymbol, out INamedTypeSymbol namedTypeSymbol)
+    {
+        if (!typeSymbol.IsGenericNamedTypeSymbol(2, out namedTypeSymbol))
+            return false;
+
+        return namedTypeSymbol.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.Dictionary<TKey, TValue>";
+    }
+
+    public static bool IsArray(this ITypeSymbol typeSymbol, out IArrayTypeSymbol arrayTypeSymbol)
+    {
+        if (typeSymbol is not IArrayTypeSymbol ats) {
+            arrayTypeSymbol = default;
+            return false;
+        }
+
+        arrayTypeSymbol = ats;
+        return true;
     }
 
     public static bool IsTask(this ITypeSymbol typeSymbol, out INamedTypeSymbol namedTypeSymbol)
@@ -457,7 +518,7 @@ public static class Extensions
 
     public static bool IsKnownType(this ITypeSymbol type)
     {
-        return type.IsIEnumerable(out _) || type.IsTask(out _);
+        return type.IsIEnumerable(out _) || type.IsTask(out _) || type.IsDictionary(out _) || type.IsArray(out _);
     }
     
     public static AttributeData GetAttribute(this ISymbol symbol, string name)
